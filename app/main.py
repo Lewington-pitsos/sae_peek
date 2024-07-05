@@ -24,8 +24,8 @@ def get_features(sae, transformer, input_ids, attention_mask):
 def peek(sae, transformer, corpus, n_features, topk, batch_size, device, output_dir):
     ds = ActivationDataset(output_dir)
     stats = {
-        'mean': torch.zeros(n_features),
-        'nonzero_proportion': torch.zeros(n_features),
+        'mean': torch.zeros(n_features).to(device),
+        'nonzero_proportion': torch.zeros(n_features).to(device),
         'max_activations': torch.zeros(topk, n_features).to(device),
         'max_activation_indices': torch.zeros(topk, n_features).to(device),
     }
@@ -33,11 +33,12 @@ def peek(sae, transformer, corpus, n_features, topk, batch_size, device, output_
     with torch.no_grad():
         for i, (input_ids, att_mask) in enumerate(tqdm.tqdm(corpus)):
             batch_size = input_ids.shape[0]
+            input_ids, att_mask = input_ids.to(device), att_mask.to(device)
             features = get_features(sae, transformer, input_ids, att_mask)
 
-            features = torch.cat([features, att_mask.unsqueeze(-1), input_ids.unsqueeze(-1)], dim=-1).to('cpu')
+            features = torch.cat([features, att_mask.unsqueeze(-1), input_ids.unsqueeze(-1)], dim=-1)
 
-            ds.add(features)
+            ds.add(features.to('cpu'))
 
             collect_feature_stats(i*batch_size, n_features, features, stats, topk)
 
@@ -45,20 +46,26 @@ def peek(sae, transformer, corpus, n_features, topk, batch_size, device, output_
 
 
 def test_example():
-    sae = SAE.load_from_pretrained('checkpoints/6twmlrfz/final_245760000').to('cpu')
+
+    if torch.cuda.is_available():
+        device = 'cuda'
+    else:
+        device = 'cpu'
+
+    sae = SAE.load_from_pretrained('checkpoints/6twmlrfz/final_245760000').to(device)
     model = HookedTransformer.from_pretrained(
         "tiny-stories-1L-21M"
-    ).to('cpu')
+    ).to(device)
 
     dataset = load_dataset("imdb")
-    train_subset = dataset['train'].take(10000)
+    train_subset = dataset['train'].take(512)
 
     def tokenize(x):
         output = model.tokenizer([y['text'] for y in x], return_tensors='pt', truncation=True, max_length=512, padding='max_length')
     
         return output['input_ids'], output['attention_mask']
 
-    batch_size = 32
+    batch_size = 256
     dl = DataLoader(train_subset, batch_size=batch_size, shuffle=False, collate_fn=tokenize)
 
     peek(
@@ -66,10 +73,10 @@ def test_example():
         model, 
         dl, 
         n_features=16384, 
-        topk=3, 
+        topk=10, 
         batch_size=batch_size, 
-        device='cpu', 
-        output_dir=TEST_DATA_DIR
+        device=device, 
+        output_dir='data/test2'
     )
 
 

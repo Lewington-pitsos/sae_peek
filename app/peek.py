@@ -173,7 +173,6 @@ def collect_feature_stats(start_idx, n_ft, activations, stats, topk):
 
     masked_activations = activations * attention_mask
 
-    batch_max = torch.max(masked_activations, dim=1).values # (bs, n_ft)
     n_elements = torch.sum(attention_mask) # (1)
 
 
@@ -185,5 +184,5 @@ def collect_feature_stats(start_idx, n_ft, activations, stats, topk):
     stats['nonzero_proportion'].add_(batch_nonzero_prop)
 
     stats['max_activations'], stats['max_activation_indices'] = new_topk_samples(start_idx, masked_activations, stats['max_activations'], stats['max_activation_indices'], topk)
-
+    
 

@@ -1,4 +1,7 @@
 checkpoints
 cruft
-data
+data/*
+!data/.gitignore
 v
+
+**/__pycache__/
