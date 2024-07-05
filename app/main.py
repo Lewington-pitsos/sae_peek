@@ -5,8 +5,8 @@ from sae_lens import SAE
 import torch
 import tqdm
 
-from peek import *
-from constants import TEST_DATA_DIR
+from app.peek import *
+from app.constants import *
 
 def get_features(sae, transformer, input_ids, attention_mask):
     _, cache = transformer.run_with_cache(

@@ -1,8 +1,9 @@
-from peek import *
-from constants import TEST_DATA_DIR
 from transformers import GPT2Tokenizer
 from termcolor import colored
 import numpy as np
+
+from app.constants import *
+from app.peek import *
 
 def normalize_activations(activations):
     min_activation = torch.min(activations)
