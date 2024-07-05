@@ -1,5 +1,7 @@
 import os
 import torch
+from tqdm import tqdm
+
 
 def data_from_tensor(tensor, n_ft):
     attention_mask = tensor[:, :, n_ft: n_ft + 1] # (bs, seq_len, 1)
@@ -84,7 +86,7 @@ class Corpus():
 
         feature_data = []
         all_sample_indices = set()
-        for feature_idx in top_k_features:
+        for feature_idx in tqdm(top_k_features, desc=f"Loading top {k} features"):
             feature_stats = {}
 
             for key, v in self.stats_tensor.items():
@@ -127,9 +129,10 @@ class Corpus():
         idx_idx = 0
 
         for offset, tensor_batch in self.ds.load_activations():
-            feature_idx = int(sample_indices[idx_idx])
-            while feature_idx < offset + tensor_batch.shape[0]:
-                batch_idx = int(feature_idx - offset)
+            sample_idx = int(sample_indices[idx_idx])
+            while sample_idx < offset + tensor_batch.shape[0]:
+                print('processing sample_index', sample_idx)
+                batch_idx = int(sample_idx - offset)
 
                 tensor = tensor_batch[batch_idx, :].unsqueeze(0)
                 attention_mask, tokens, activations = data_from_tensor(tensor, self.n_fts)
@@ -138,16 +141,17 @@ class Corpus():
                 activations = activations.squeeze()[:seq_len, :].squeeze()
 
 
-                mapping[feature_idx] = (tokens, activations)
+                mapping[sample_idx] = (tokens, activations)
 
                 idx_idx += 1
 
                 if idx_idx >= len(sample_indices):
                     break
 
-                feature_idx = int(sample_indices[idx_idx])
+                sample_idx = int(sample_indices[idx_idx])
 
-            if idx_idx >= len(sample_indices):
+            print('loading next tensor from disk')
+            if idx_idx >= len(sample_indices):  
                 break
         
         return mapping
@@ -184,5 +188,5 @@ def collect_feature_stats(start_idx, n_ft, activations, stats, topk):
     stats['nonzero_proportion'].add_(batch_nonzero_prop)
 
     stats['max_activations'], stats['max_activation_indices'] = new_topk_samples(start_idx, masked_activations, stats['max_activations'], stats['max_activation_indices'], topk)
-    
+
 

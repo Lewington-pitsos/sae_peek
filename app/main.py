@@ -3,7 +3,6 @@ from datasets import load_dataset
 from transformer_lens import HookedTransformer
 from sae_lens import SAE
 import torch
-import tqdm
 
 from app.peek import *
 from app.constants import *
@@ -31,7 +30,7 @@ def peek(sae, transformer, corpus, n_features, topk, batch_size, device, output_
     }
 
     with torch.no_grad():
-        for i, (input_ids, att_mask) in enumerate(tqdm.tqdm(corpus)):
+        for i, (input_ids, att_mask) in enumerate(tqdm(corpus)):
             batch_size = input_ids.shape[0]
             input_ids, att_mask = input_ids.to(device), att_mask.to(device)
             features = get_features(sae, transformer, input_ids, att_mask)
@@ -58,7 +57,7 @@ def test_example():
     ).to(device)
 
     dataset = load_dataset("imdb")
-    train_subset = dataset['train'].take(512)
+    train_subset = dataset['train'].take(4096)
 
     def tokenize(x):
         output = model.tokenizer([y['text'] for y in x], return_tensors='pt', truncation=True, max_length=512, padding='max_length')
