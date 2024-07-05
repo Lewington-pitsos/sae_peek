@@ -5,45 +5,8 @@ from sae_lens import SAE
 import torch
 from tqdm import tqdm
 
-from app.peek import ActivationDataset, collect_feature_stats
+from app.collect import collect_active_samples
 from app.constants import *
-
-def get_features(sae, transformer, input_ids, attention_mask):
-    _, cache = transformer.run_with_cache(
-        input_ids, 
-        attention_mask=attention_mask, 
-        prepend_bos=True, 
-        stop_at_layer=sae.cfg.hook_layer + 1)
-
-    hidden_states = cache[sae.cfg.hook_name]
-
-    features = sae.encode(hidden_states)
-
-    return features
-
-def peek(sae, transformer, corpus, n_features, topk, batch_size, device, output_dir):
-    ds = ActivationDataset(output_dir)
-    stats = {
-        'mean': torch.zeros(n_features).to(device),
-        'nonzero_proportion': torch.zeros(n_features).to(device),
-        'max_activations': torch.zeros(topk, n_features).to(device),
-        'max_activation_indices': torch.zeros(topk, n_features).to(device),
-    }
-
-    with torch.no_grad():
-        for i, (input_ids, att_mask) in enumerate(tqdm(corpus)):
-            batch_size = input_ids.shape[0]
-            input_ids, att_mask = input_ids.to(device), att_mask.to(device)
-            features = get_features(sae, transformer, input_ids, att_mask)
-
-            features = torch.cat([features, att_mask.unsqueeze(-1), input_ids.unsqueeze(-1)], dim=-1)
-
-            ds.add(features.to('cpu'))
-
-            collect_feature_stats(i*batch_size, n_features, features, stats, topk)
-
-    ds.finalize(stats)
-
 
 def test_example():
 
@@ -52,31 +15,36 @@ def test_example():
     else:
         device = 'cpu'
 
-    sae = SAE.load_from_pretrained('checkpoints/6twmlrfz/final_245760000').to(device)
+    # sae = SAE.load_from_pretrained('checkpoints/6twmlrfz/final_245760000').to(device)
+    # model = HookedTransformer.from_pretrained(
+    #     "tiny-stories-1L-21M"
+    # ).to(device)
+
+    sae, _, _ = SAE.from_pretrained(
+        release = "gpt2-small-res-jb", # see other options in sae_lens/pretrained_saes.yaml
+        sae_id = "blocks.8.hook_resid_pre", # won't always be a hook point
+        device = device
+    )
     model = HookedTransformer.from_pretrained(
-        "tiny-stories-1L-21M"
+        "gpt2-small"
     ).to(device)
 
     dataset = load_dataset("imdb")
-    train_subset = dataset['train'].take(64)
-
+    train_subset = dataset['train'].take(4096)
     def tokenize(x):
         output = model.tokenizer([y['text'] for y in x], return_tensors='pt', truncation=True, max_length=512, padding='max_length')
     
         return output['input_ids'], output['attention_mask']
-
-    batch_size = 16
+    batch_size = 128
     dl = DataLoader(train_subset, batch_size=batch_size, shuffle=False, collate_fn=tokenize)
 
-    peek(
+    collect_active_samples(
         sae,
         model, 
         dl, 
-        n_features=16384, 
-        topk=10, 
-        batch_size=batch_size, 
+        samples_per_feature=10, 
         device=device, 
-        output_dir=TEST_DATA_DIR
+        output_dir='data/gpt2'
     )
 
 
