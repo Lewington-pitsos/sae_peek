@@ -1,3 +1,4 @@
+import h5py
 import os
 import torch
 from tqdm import tqdm
@@ -26,7 +27,7 @@ class ActivationDataset():
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
 
-        self.start_idx = 0
+        self._n_tensors_saved = 0
     
     def add(self, activations):
         current_size = self.activations.shape[0]
@@ -36,27 +37,31 @@ class ActivationDataset():
         else:
             self.activations = torch.cat([self.activations, activations], dim=0)   
 
+    @property
+    def h5_name(self):
+        return os.path.join(self.data_dir, f"samples.h5")
+
     def save_activations(self):
         if self.activations.shape[0] == 0:
             return
-
-        filename = os.path.join(self.data_dir, f"sample_{self.start_idx}.pt")
-        torch.save(self.activations, filename)
-        self.start_idx += self.activations.shape[0]
+        
+        with h5py.File(self.h5_name, 'w') as f:
+            f.create_dataset(f'sample_{self._n_tensors_saved}', data=self.activations.numpy())
+        
+        self._n_tensors_saved += 1
         self.activations = torch.tensor([])
 
-    def load_activations(self):
-        all_tensor_files = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if "sample_" in x]
-        if len(all_tensor_files) == 0:
-            raise ValueError(f"No tensor files found in {self.data_dir}")
-        
-        all_tensor_files = sorted(all_tensor_files, key=lambda x: int(x.split('sample_')[1].split('.')[0]))
+    def lazy_load_activations(self):
+        with h5py.File(self.h5_name, 'r') as h5file:
+            if len(h5file.keys()) == 0:
+                raise ValueError(f"No keys found in {self.h5_name}, it is empty.")
 
-        running_offset = 0
-        for tensor_file in all_tensor_files:
-            tensor = torch.load(tensor_file)
-            running_offset += tensor.shape[0]
-            yield running_offset, tensor
+            running_offset = 0
+            for key in h5file.keys():
+                lazy_tensor = h5file[key]
+
+                running_offset += lazy_tensor.shape[0]
+                yield running_offset, lazy_tensor
 
     def finalize(self, stats):
         torch.save(stats, os.path.join(self.data_dir, 'stats.pt'))    
@@ -118,9 +123,7 @@ class Corpus():
                 
             f['max_samples'] = feature_activation_samples
 
-
         return feature_data
-
 
     def load_mapping(self, sample_indices):
         sample_indices = sorted(list(sample_indices))
@@ -128,14 +131,15 @@ class Corpus():
         mapping = {}
         idx_idx = 0
 
-        for offset, tensor_batch in self.ds.load_activations():
+        pbar = tqdm(total=len(sample_indices), desc="Loading tensors from disk")
+
+        for offset, lazy_tensor_batch in self.ds.lazy_load_activations():
             sample_idx = int(sample_indices[idx_idx])
-            while sample_idx < offset + tensor_batch.shape[0]:
-                print('processing sample_index', sample_idx)
+            while sample_idx < offset + lazy_tensor_batch.shape[0]:
                 batch_idx = int(sample_idx - offset)
 
-                tensor = tensor_batch[batch_idx, :].unsqueeze(0)
-                attention_mask, tokens, activations = data_from_tensor(tensor, self.n_fts)
+                sample_data = torch.tensor(lazy_tensor_batch[batch_idx, :]).unsqueeze(0)
+                attention_mask, tokens, activations = data_from_tensor(sample_data, self.n_fts)
                 seq_len = int(torch.sum(attention_mask).item())
                 tokens = tokens.squeeze()[:seq_len]
                 activations = activations.squeeze()[:seq_len, :].squeeze()
@@ -144,13 +148,13 @@ class Corpus():
                 mapping[sample_idx] = (tokens, activations)
 
                 idx_idx += 1
+                pbar.update(1)
 
                 if idx_idx >= len(sample_indices):
                     break
 
                 sample_idx = int(sample_indices[idx_idx])
 
-            print('loading next tensor from disk')
             if idx_idx >= len(sample_indices):  
                 break
         

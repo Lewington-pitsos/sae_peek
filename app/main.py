@@ -3,8 +3,9 @@ from datasets import load_dataset
 from transformer_lens import HookedTransformer
 from sae_lens import SAE
 import torch
+from tqdm import tqdm
 
-from app.peek import *
+from app.peek import ActivationDataset, collect_feature_stats
 from app.constants import *
 
 def get_features(sae, transformer, input_ids, attention_mask):
@@ -57,14 +58,14 @@ def test_example():
     ).to(device)
 
     dataset = load_dataset("imdb")
-    train_subset = dataset['train'].take(4096)
+    train_subset = dataset['train'].take(64)
 
     def tokenize(x):
         output = model.tokenizer([y['text'] for y in x], return_tensors='pt', truncation=True, max_length=512, padding='max_length')
     
         return output['input_ids'], output['attention_mask']
 
-    batch_size = 256
+    batch_size = 16
     dl = DataLoader(train_subset, batch_size=batch_size, shuffle=False, collate_fn=tokenize)
 
     peek(
@@ -75,7 +76,7 @@ def test_example():
         topk=10, 
         batch_size=batch_size, 
         device=device, 
-        output_dir='data/test2'
+        output_dir=TEST_DATA_DIR
     )
 
 
