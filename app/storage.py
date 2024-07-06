@@ -4,6 +4,8 @@ import os
 import h5py
 
 def data_from_tensor(tensor, n_ft):
+    assert tensor.shape[2] == n_ft + 2, f"Expected tensor to have {n_ft + 2} features, got {tensor.shape[2]}"
+
     attention_mask = tensor[:, :, n_ft: n_ft + 1] # (bs, seq_len, 1)
     tokens = tensor[:, :, n_ft + 1:] # (bs, seq_len, 1)
     activations = tensor[:, :, :n_ft] # (bs, seq_len, n_ft)
@@ -62,8 +64,6 @@ class ActivationDataset():
                 else:
                     return
 
-
-
     def lazy_load_activations(self):
         with h5py.File(self.h5_name, 'r') as h5file:
             if len(h5file.keys()) == 0:
@@ -82,5 +82,5 @@ class ActivationDataset():
         
         self.save_activations()
 
-    def load_stats(self):
-        return torch.load(os.path.join(self.data_dir, 'stats.pt'))
+    def load_stats(self, device='cpu'):
+        return torch.load(os.path.join(self.data_dir, 'stats.pt'), map_location=device)

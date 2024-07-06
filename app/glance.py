@@ -5,18 +5,23 @@ from tqdm import tqdm
 from app.constants import *
 from app.storage import ActivationDataset, data_from_tensor
 
-# 4766 - get on the beers
-# 14997 - salvery/racism
-
 class Corpus():
     def __init__(self, data_dir):
         self.ds = ActivationDataset(data_dir)
 
-        self.stats_tensor = self.ds.load_stats()
-        self.n_fts = self.stats_tensor['mean'].shape[0]
+        self._stats_tensor = self.ds.load_stats()
+        self._n_fts = self._stats_tensor['mean'].shape[0]
+
+    @property
+    def n_fts(self):
+        return self._n_fts
+
+    @property
+    def stats_tensor(self):
+        return self._stats_tensor
 
     def random_features(self, k=1):
-        random_indices = torch.randperm(self.n_fts)[:k]
+        random_indices = torch.randperm(self._n_fts)[:k]
         
         return self.features_by_index(random_indices)
         
@@ -26,26 +31,24 @@ class Corpus():
             raise ValueError(f"metric to sort features by must be one of {METRIC_NAMES}")
         
         if metric == 'max_activations':
-            feature_data = self.stats_tensor[metric][0]
+            feature_data = self._stats_tensor[metric][0]
         else:
-            feature_data = self.stats_tensor[metric]
+            feature_data = self._stats_tensor[metric]
 
         top_k_feature_indices = torch.topk(feature_data, stop).indices[start:]
         
         return self.features_by_index(top_k_feature_indices)
 
-    def features_by_index(self, feature_indices):
-
+    def features_by_idx(self, feature_indices, samples_per_feature=None):
         if isinstance(feature_indices, torch.Tensor):
             feature_indices = feature_indices.tolist()
-
 
         feature_data = []
         all_sample_indices = set()
         for feature_idx in feature_indices:
             feature_stats = {}
 
-            for key, v in self.stats_tensor.items():
+            for key, v in self._stats_tensor.items():
                 if v.dim() == 1:
                     feature_stats[key] = v[feature_idx]
                 elif v.dim() == 2:
@@ -53,7 +56,10 @@ class Corpus():
                 else:
                     raise ValueError(f"Unexpected number of dimensions for statistic {key}, {v.dim()}")
 
-            sample_indices = self.stats_tensor['max_activation_indices'][:, feature_idx].to(torch.int).tolist()
+            sample_indices = self._stats_tensor['max_activation_indices'][:, feature_idx].to(torch.int).tolist()
+
+            if samples_per_feature is not None:
+                sample_indices = sample_indices[:samples_per_feature]
 
             feature_data.append({
                 'index': feature_idx,
@@ -81,7 +87,7 @@ class Corpus():
 
         for sample_idx, sample_data in tqdm(self.ds.samples_for_indices(sample_indices), desc="Loading samples from disk", total=len(sample_indices)):
 
-            attention_mask, tokens, activations = data_from_tensor(sample_data, self.n_fts)
+            attention_mask, tokens, activations = data_from_tensor(sample_data, self._n_fts)
             seq_len = int(torch.sum(attention_mask).item())
             tokens = tokens.squeeze()[:seq_len]
             activations = activations.squeeze()[:seq_len, :].squeeze()
@@ -99,6 +105,7 @@ def glance_at(tokens, activations, tokenizer):
     norm_activations = normalize_activations(activations)
 
     if torch.isnan(norm_activations).any():
+        print('Normalized Activations contain NaNs, skipping...')
         return
 
     index_of_first_nonzero_activation = -1
@@ -115,16 +122,23 @@ def glance_at(tokens, activations, tokenizer):
         if a > 0 and index_of_first_nonzero_activation == -1:
             index_of_first_nonzero_activation = i
         
-        if n_consecutive_zeros > context_len and index_of_first_nonzero_activation != -1:
+        if n_consecutive_zeros >= context_len and index_of_first_nonzero_activation != -1:
             first_index = max(0, index_of_first_nonzero_activation - context_len)
             last_index = min(len(word_tokens), index_of_last_nonzero_activation + context_len)
 
             sections.append((first_index, last_index))
             n_consecutive_zeros = 0
             index_of_first_nonzero_activation = -1
-        
-        n_consecutive_zeros += 1
 
+        if a == 0:
+            n_consecutive_zeros += 1
+        
+    if index_of_first_nonzero_activation != -1:
+        first_index = max(0, index_of_first_nonzero_activation - context_len)
+        last_index = min(len(word_tokens), index_of_last_nonzero_activation + context_len)
+
+        sections.append((first_index, last_index))
+    
     for first_index, last_index in sections:
         for token, activation in zip(word_tokens[first_index:last_index], norm_activations[first_index:last_index]):
             color = activation_to_color(activation)

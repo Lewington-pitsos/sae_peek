@@ -54,16 +54,16 @@ def get_features(sae, transformer, input_ids, attention_mask):
 
     return features
 
-def collect_active_samples(sae, transformer, dataloader, device, output_dir, samples_per_feature=5, n_features=None):
-    if n_features is None:
-        n_features = sae.cfg.d_sae
+def create_sample_statistics(sae, transformer, dataloader, device, output_dir, samples_per_feature=5, n_fts_to_analyse=None):
+    if n_fts_to_analyse is None:
+        n_fts_to_analyse = sae.cfg.d_sae
 
     ds = ActivationDataset(output_dir)
     stats = {
-        'mean': torch.zeros(n_features).to(device),
-        'nonzero_proportion': torch.zeros(n_features).to(device),
-        'max_activations': torch.zeros(samples_per_feature, n_features).to(device),
-        'max_activation_indices': torch.zeros(samples_per_feature, n_features).to(device),
+        'mean': torch.zeros(n_fts_to_analyse).to(device),
+        'nonzero_proportion': torch.zeros(n_fts_to_analyse).to(device),
+        'max_activations': torch.zeros(samples_per_feature, n_fts_to_analyse).to(device),
+        'max_activation_indices': torch.zeros(samples_per_feature, n_fts_to_analyse).to(device),
     }
 
     with torch.no_grad():
@@ -72,10 +72,14 @@ def collect_active_samples(sae, transformer, dataloader, device, output_dir, sam
             input_ids, att_mask = input_ids.to(device), att_mask.to(device)
             features = get_features(sae, transformer, input_ids, att_mask)
 
+            # truncate to selected features, essentially randomly sample n_features features
+            if n_fts_to_analyse < features.shape[2]:
+                features = features[:, :, :n_fts_to_analyse]
+
             features = torch.cat([features, att_mask.unsqueeze(-1), input_ids.unsqueeze(-1)], dim=-1)
 
             ds.add(features.to('cpu'))
 
-            collect_feature_stats(i*batch_size, n_features, features, stats, samples_per_feature)
+            collect_feature_stats(i*batch_size, n_fts_to_analyse, features, stats, samples_per_feature)
 
     ds.finalize(stats)
