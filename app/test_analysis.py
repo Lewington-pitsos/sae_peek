@@ -4,7 +4,7 @@ from transformers import GPT2Tokenizer
 from app.constants import *
 from app.glance import Corpus, glance_at
 
-def test_analysis():
+def analysis():
     c = Corpus('data/gpt2')
 
     max_features = c.features_by_metric('max_activations', start=1000, stop=1005)
@@ -14,9 +14,8 @@ def test_analysis():
     for f in max_features:
         print(f'Feature {f["index"]} --------------')
         print(f'Max Activations', f['stats']['max_activations'])
-        for tokens, activations in f['max_samples']:
+        for tokens, activations in f['samples']:
             glance_at(tokens, activations, tokenizer)
-
 
 def dual_analysis():
     pos = Corpus('data/gpt2-imdb-pos')
@@ -46,13 +45,13 @@ def dual_analysis():
 
         print('Positive Samples -------')
         print(f'Max Activations', pfeat['stats']['max_activations'])
-        for tokens, activations in pfeat['max_samples']:
+        for tokens, activations in pfeat['samples']:
             glance_at(tokens, activations, tokenizer)
 
 
         print('Negative Samples -------')
         print(f'Max Activations', nfeat['stats']['max_activations'])
-        for tokens, activations in nfeat['max_samples']:
+        for tokens, activations in nfeat['samples']:
             glance_at(tokens, activations, tokenizer)
 
 

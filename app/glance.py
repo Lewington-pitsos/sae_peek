@@ -64,7 +64,7 @@ class Corpus():
             feature_data.append({
                 'index': feature_idx,
                 'stats': feature_stats,
-                'max_samples': sample_indices
+                'samples': sample_indices
             })
 
             all_sample_indices.update(sample_indices)
@@ -73,12 +73,12 @@ class Corpus():
 
         for f in feature_data:
             feature_activation_samples = []
-            for sample_index in f['max_samples']:
+            for sample_index in f['samples']:
                 tokens, all_feature_activations = data_mapping[int(sample_index)]
                 feature_specific_activations = all_feature_activations[:, f['index']].squeeze()
                 feature_activation_samples.append((tokens, feature_specific_activations))
                 
-            f['max_samples'] = feature_activation_samples
+            f['samples'] = feature_activation_samples
 
         return feature_data
 
@@ -98,8 +98,15 @@ class Corpus():
         return mapping
 
 
+def active_sections_across_samples(samples, tokenizer):
+    active_sections = []
+    for tokens, activations in samples:
+        sections = get_active_sections(tokens, activations, tokenizer)
+        active_sections.extend(sections)
 
-def glance_at(tokens, activations, tokenizer):
+    return active_sections
+
+def get_active_sections(tokens, activations, tokenizer):
     word_tokens = tokenizer.convert_ids_to_tokens(tokens)
     word_tokens = [t.replace('Ġ', '') for t in word_tokens]
     norm_activations = normalize_activations(activations)
@@ -138,9 +145,18 @@ def glance_at(tokens, activations, tokenizer):
         last_index = min(len(word_tokens), index_of_last_nonzero_activation + context_len)
 
         sections.append((first_index, last_index))
-    
+
+    token_sections = []
     for first_index, last_index in sections:
-        for token, activation in zip(word_tokens[first_index:last_index], norm_activations[first_index:last_index]):
+        token_sections.append((word_tokens[first_index:last_index], norm_activations[first_index:last_index]))
+
+    return token_sections
+
+def glance_at(tokens, activations, tokenizer):
+    sections = get_active_sections(tokens, activations, tokenizer)
+
+    for word_tokens, norm_activations in sections:
+        for token, activation in zip(word_tokens, norm_activations):
             color = activation_to_color(activation)
             print(colored(token, color), end=' ')
         print()
