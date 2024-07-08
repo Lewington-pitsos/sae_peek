@@ -112,7 +112,7 @@ def sae_assessment(
         feature_indices=feature_indices
     )
 
-    llm_assessment(activation_dir, output, feature_indices, samples_per_feature)
+    llm_assessment(activation_dir, output, samples_per_feature)
 
     metrics_of_interest = [
         'feature_coherence',

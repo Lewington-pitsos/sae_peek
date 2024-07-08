@@ -34,8 +34,8 @@ def dual_analysis():
     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 
     samples_per_feature=3
-    pos_samples = pos.features_by_idx(most_pos_features, samples_per_feature)
-    neg_samples = neg.features_by_idx(most_pos_features, samples_per_feature)
+    pos_samples = pos.by_relative_idx(most_pos_features, samples_per_feature)
+    neg_samples = neg.by_relative_idx(most_pos_features, samples_per_feature)
 
     for i in range(len(neg_samples)):
         pfeat = pos_samples[i]

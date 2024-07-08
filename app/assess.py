@@ -52,7 +52,7 @@ def describe_feature(sample_description, id):
         print(f"Error: {e} encountered for message, {content}")
         return None, id
 
-def assess(data_dir, feature_indices, samples_per_feature):
+def assess(data_dir, samples_per_feature, relative_feature_indices=None):
     with open(CREDENTIALS_FILE) as f:
         credentials = json.load(f)
 
@@ -62,7 +62,10 @@ def assess(data_dir, feature_indices, samples_per_feature):
 
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
-    features = c.features_by_idx(feature_indices, samples_per_feature=samples_per_feature)
+    if relative_feature_indices is None:
+        features = c.all_features(samples_per_feature=samples_per_feature)
+    else:
+        features = c.by_relative_idx(relative_feature_indices, samples_per_feature=samples_per_feature)
 
     assessment = {}
     for f in features:
@@ -86,11 +89,8 @@ def assess(data_dir, feature_indices, samples_per_feature):
 
     return list(assessment.values())
 
-def llm_assessment(data_dir, filename, feature_indices, samples_per_feature):
-    assessment = assess(data_dir, feature_indices, samples_per_feature)
+def llm_assessment(data_dir, filename, samples_per_feature, relative_feature_indices=None):
+    assessment = assess(data_dir, samples_per_feature, relative_feature_indices)
 
     with open(filename, 'w') as f:
         json.dump(assessment, f, indent=4)
-
-if __name__ == '__main__':
-    llm_assessment('data/small', 'cruft/small-comp.json')

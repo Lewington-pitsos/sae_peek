@@ -63,7 +63,7 @@ def create_sample_statistics(sae, transformer, dataloader, device, output, sampl
     ds = ActivationDataset(output)
     stats = {
         'mean': torch.zeros(n_fts_to_analyse).to(device),
-        'feature_indices': feature_indices,
+        'feature_indices': torch.tensor(feature_indices),
         'nonzero_proportion': torch.zeros(n_fts_to_analyse).to(device),
         'max_activations': torch.zeros(samples_per_feature, n_fts_to_analyse).to(device),
         'max_activation_indices': torch.zeros(samples_per_feature, n_fts_to_analyse).to(device),

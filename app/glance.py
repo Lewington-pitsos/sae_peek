@@ -13,7 +13,11 @@ class Corpus():
 
     @property
     def n_fts(self):
-        return len(self.stats_tensor['feature_indices'])
+        return len(self.feature_indices)
+
+    @property
+    def feature_indices(self):
+        return self.stats_tensor['feature_indices'].to(torch.int).tolist()
 
     @property
     def stats_tensor(self):
@@ -22,7 +26,7 @@ class Corpus():
     def random_features(self, k=1):
         random_indices = torch.randperm(self.n_fts)[:k]
         
-        return self.features_by_index(random_indices)
+        return self.by_relative_idx(random_indices)
         
 
     def features_by_metric(self, metric, stop=1, start=0):
@@ -36,32 +40,39 @@ class Corpus():
 
         top_k_feature_indices = torch.topk(feature_data, stop).indices[start:]
         
-        return self.features_by_index(top_k_feature_indices)
+        return self.by_relative_idx(top_k_feature_indices)
 
-    def features_by_idx(self, feature_indices, samples_per_feature=None):
-        if isinstance(feature_indices, torch.Tensor):
-            feature_indices = feature_indices.tolist()
+    def all_features(self, samples_per_feature=None):
+        return self.by_relative_idx(list(range(self.n_fts)), samples_per_feature=samples_per_feature)
+
+    def by_relative_idx(self, relative_indices, samples_per_feature=None):
+        if isinstance(relative_indices, torch.Tensor):
+            relative_indices = relative_indices.tolist()
 
         feature_data = []
         all_sample_indices = set()
-        for feature_idx in feature_indices:
+        for relative_idx in relative_indices:
             feature_stats = {}
 
             for key, v in self._stats_tensor.items():
                 if v.dim() == 1:
-                    feature_stats[key] = v[feature_idx]
+                    feature_stats[key] = v[relative_idx]
                 elif v.dim() == 2:
-                    feature_stats[key] = v[:, feature_idx]
+                    feature_stats[key] = v[:, relative_idx]
                 else:
                     raise ValueError(f"Unexpected number of dimensions for statistic {key}, {v.dim()}")
+            
 
-            sample_indices = self._stats_tensor['max_activation_indices'][:, feature_idx].to(torch.int).tolist()
+            sample_indices = self._stats_tensor['max_activation_indices'][:, relative_idx].to(torch.int).tolist()
 
             if samples_per_feature is not None:
                 sample_indices = sample_indices[:samples_per_feature]
 
+            feature_idx = self.feature_indices[relative_idx]
+
             feature_data.append({
                 'index': feature_idx,
+                'relative_index': relative_idx,
                 'stats': feature_stats,
                 'samples': sample_indices
             })
@@ -74,7 +85,7 @@ class Corpus():
             feature_activation_samples = []
             for sample_index in f['samples']:
                 tokens, all_feature_activations = data_mapping[int(sample_index)]
-                feature_specific_activations = all_feature_activations[:, f['index']].squeeze()
+                feature_specific_activations = all_feature_activations[:, f['relative_index']].squeeze()
                 feature_activation_samples.append((tokens, feature_specific_activations))
                 
             f['samples'] = feature_activation_samples
