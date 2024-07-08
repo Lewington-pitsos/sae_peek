@@ -5,7 +5,7 @@ from tqdm import tqdm
 from transformers import GPT2Tokenizer
 
 from app.glance import Corpus, active_sections_across_samples
-
+from app.constants import *
 
 def feature_representation(feature, tokenizer):
     sections = active_sections_across_samples(feature['samples'], tokenizer)
@@ -29,25 +29,31 @@ def get_prompt(sample_description):
 
 {sample_description}
 
-What feature is the model detecting? Is the feature coherent at all? Is the feature complex or simple? Give the feature a name, describe it in 50 words or less and give it a rating between 1.0 and 0.0 for coherence (1.0 is highly coherent). Also give a rating between 1.0 and 0.0 for complexity (1.0 is a very rich, sophisticated feature). State your assessment as JSON in the following format: """ + '{"feature_name": string, "feature_description": string, "feature_coherence": float, "feature_complexity": float }\n'
+What feature is the model detecting? Is the feature coherent? Is the feature complex or simple? Give the feature a name, describe it in 50 words or less and give it a rating between 1.0 and 0.0 for coherence (1.0 is highly coherent). Also give a rating between 1.0 and 0.0 for complexity (1.0 is a very rich, interesting, sophisticated feature). State your assessment as JSON in the following format: """ + '{"feature_name": string, "feature_description": string, "feature_coherence": float, "feature_complexity": float }\n'
 
     return prompt
 
 def describe_feature(sample_description, id):
-    prompt = get_prompt(sample_description)
-    response = openai.chat.completions.create(
-        response_format={ "type": "json_object" },
-        model="gpt-4o",  
-        messages=[
-            { "role": "system", "content": prompt }
-        ],  
-        max_tokens=100
-    )
-    
-    return json.loads(response.choices[0].message.content), id
+    try:
+        prompt = get_prompt(sample_description)
+        response = openai.chat.completions.create(
+            response_format={ "type": "json_object" },
+            model="gpt-4o",  
+            messages=[
+                { "role": "system", "content": prompt }
+            ],  
+            max_tokens=200,
+            temperature=0.0
+        )
+        
+        content = response.choices[0].message.content
+        return json.loads(content), id
+    except json.decoder.JSONDecodeError as e:
+        print(f"Error: {e} encountered for message, {content}")
+        return None, id
 
-def assess(data_dir, n_feats_to_analyse, samples_per_feature):
-    with open('.credentials.json') as f:
+def assess(data_dir, feature_indices, samples_per_feature):
+    with open(CREDENTIALS_FILE) as f:
         credentials = json.load(f)
 
     openai.api_key = credentials['OPENAI_API_KEY']
@@ -56,9 +62,7 @@ def assess(data_dir, n_feats_to_analyse, samples_per_feature):
 
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
-    ft_indices = list(range(n_feats_to_analyse))
-
-    features = c.features_by_idx(ft_indices, samples_per_feature=samples_per_feature)
+    features = c.features_by_idx(feature_indices, samples_per_feature=samples_per_feature)
 
     assessment = {}
     for f in features:
@@ -82,8 +86,8 @@ def assess(data_dir, n_feats_to_analyse, samples_per_feature):
 
     return list(assessment.values())
 
-def llm_assessment(data_dir, filename, n_feats_to_analyse, samples_per_feature):
-    assessment = assess(data_dir, n_feats_to_analyse, samples_per_feature)
+def llm_assessment(data_dir, filename, feature_indices, samples_per_feature):
+    assessment = assess(data_dir, feature_indices, samples_per_feature)
 
     with open(filename, 'w') as f:
         json.dump(assessment, f, indent=4)

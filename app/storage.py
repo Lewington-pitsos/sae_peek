@@ -5,9 +5,9 @@ import h5py
 def data_from_tensor(tensor, n_ft):
     assert tensor.shape[2] == n_ft + 2, f"Expected tensor to have {n_ft + 2} features, got {tensor.shape[2]}"
 
-    attention_mask = tensor[:, :, n_ft: n_ft + 1] # (bs, seq_len, 1)
-    tokens = tensor[:, :, n_ft + 1:] # (bs, seq_len, 1)
-    activations = tensor[:, :, :n_ft] # (bs, seq_len, n_ft)
+    attention_mask = tensor[:, :, n_ft: n_ft + 1]  # (bs, seq_len, 1)
+    tokens = tensor[:, :, n_ft + 1:]  # (bs, seq_len, 1)
+    activations = tensor[:, :, :n_ft]  # (bs, seq_len, n_ft)
 
     return attention_mask, tokens, activations
 

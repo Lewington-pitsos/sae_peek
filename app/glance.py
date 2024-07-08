@@ -10,18 +10,17 @@ class Corpus():
         self.ds = ActivationDataset(data_dir)
 
         self._stats_tensor = self.ds.load_stats()
-        self._n_fts = self._stats_tensor['mean'].shape[0]
 
     @property
     def n_fts(self):
-        return self._n_fts
+        return len(self.stats_tensor['feature_indices'])
 
     @property
     def stats_tensor(self):
         return self._stats_tensor
 
     def random_features(self, k=1):
-        random_indices = torch.randperm(self._n_fts)[:k]
+        random_indices = torch.randperm(self.n_fts)[:k]
         
         return self.features_by_index(random_indices)
         
@@ -87,7 +86,7 @@ class Corpus():
 
         for sample_idx, sample_data in tqdm(self.ds.samples_for_indices(sample_indices), desc="Loading samples from disk", total=len(sample_indices)):
 
-            attention_mask, tokens, activations = data_from_tensor(sample_data, self._n_fts)
+            attention_mask, tokens, activations = data_from_tensor(sample_data, self.n_fts)
             seq_len = int(torch.sum(attention_mask).item())
             tokens = tokens.squeeze()[:seq_len]
             activations = activations.squeeze()[:seq_len, :].squeeze()

@@ -54,13 +54,16 @@ def get_features(sae, transformer, input_ids, attention_mask):
 
     return features
 
-def create_sample_statistics(sae, transformer, dataloader, device, output, samples_per_feature=5, n_fts_to_analyse=None):
-    if n_fts_to_analyse is None:
-        n_fts_to_analyse = sae.cfg.d_sae
+def create_sample_statistics(sae, transformer, dataloader, device, output, samples_per_feature=5, feature_indices=None):
+    if feature_indices is None:
+        feature_indices = list(range(sae.cfg.d_sae))
+    
+    n_fts_to_analyse = len(feature_indices)
 
     ds = ActivationDataset(output)
     stats = {
         'mean': torch.zeros(n_fts_to_analyse).to(device),
+        'feature_indices': feature_indices,
         'nonzero_proportion': torch.zeros(n_fts_to_analyse).to(device),
         'max_activations': torch.zeros(samples_per_feature, n_fts_to_analyse).to(device),
         'max_activation_indices': torch.zeros(samples_per_feature, n_fts_to_analyse).to(device),
@@ -74,7 +77,7 @@ def create_sample_statistics(sae, transformer, dataloader, device, output, sampl
 
             # truncate to selected features, essentially randomly sample n_features features
             if n_fts_to_analyse < features.shape[2]:
-                features = features[:, :, :n_fts_to_analyse]
+                features = features[:, :, feature_indices]
 
             features = torch.cat([features, att_mask.unsqueeze(-1), input_ids.unsqueeze(-1)], dim=-1)
 
