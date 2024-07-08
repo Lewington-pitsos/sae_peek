@@ -7,3 +7,5 @@ v
 **/__pycache__/
 
 pad.ipynb
+
+.credentials.json

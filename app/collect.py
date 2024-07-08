@@ -54,11 +54,11 @@ def get_features(sae, transformer, input_ids, attention_mask):
 
     return features
 
-def create_sample_statistics(sae, transformer, dataloader, device, output_dir, samples_per_feature=5, n_fts_to_analyse=None):
+def create_sample_statistics(sae, transformer, dataloader, device, output, samples_per_feature=5, n_fts_to_analyse=None):
     if n_fts_to_analyse is None:
         n_fts_to_analyse = sae.cfg.d_sae
 
-    ds = ActivationDataset(output_dir)
+    ds = ActivationDataset(output)
     stats = {
         'mean': torch.zeros(n_fts_to_analyse).to(device),
         'nonzero_proportion': torch.zeros(n_fts_to_analyse).to(device),
@@ -67,7 +67,7 @@ def create_sample_statistics(sae, transformer, dataloader, device, output_dir, s
     }
 
     with torch.no_grad():
-        for i, (input_ids, att_mask) in enumerate(tqdm(dataloader)):
+        for i, (input_ids, att_mask) in enumerate(tqdm(dataloader, desc='Generating and Analysing Activations')):
             batch_size = input_ids.shape[0]
             input_ids, att_mask = input_ids.to(device), att_mask.to(device)
             features = get_features(sae, transformer, input_ids, att_mask)

@@ -102,7 +102,8 @@ def active_sections_across_samples(samples, tokenizer):
     active_sections = []
     for tokens, activations in samples:
         sections = get_active_sections(tokens, activations, tokenizer)
-        active_sections.extend(sections)
+        if sections is not None:
+            active_sections.extend(sections)
 
     return active_sections
 
@@ -113,7 +114,7 @@ def get_active_sections(tokens, activations, tokenizer):
 
     if torch.isnan(norm_activations).any():
         print('Normalized Activations contain NaNs, skipping...')
-        return
+        return None
 
     index_of_first_nonzero_activation = -1
     index_of_last_nonzero_activation = 0
