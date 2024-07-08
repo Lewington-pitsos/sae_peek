@@ -54,7 +54,7 @@ def sae_assessment(
 
 
         transformer_name=None, 
-        samples_per_feature=5,
+        samples_per_feature=15,
         sae_id=None,
         n_feats_to_analyse=None,
     ):
@@ -121,17 +121,32 @@ def sae_assessment(
         print(f'{k}: {sum(v) / len(v)}, std: {np.std(v)}')
 
 if __name__ == '__main__':
-    sae_assessment(
-        dataset='NeelNanda/pile-10k',
-        n_samples=512,
-        sae_model='gpt2-small-res-jb',
-        sae_id='blocks.0.hook_resid_pre',
-        device='cpu',
-        batch_size=16,
-        sequence_length=128,
-        activation_dir='data/pile-10k',
-        output='cruft/pile-10k-comp.json',
-        n_feats_to_analyse=25
-    )
+    for sae_id in [
+        "blocks.0.hook_resid_pre",
+        "blocks.1.hook_resid_pre",
+        "blocks.2.hook_resid_pre",
+        "blocks.3.hook_resid_pre",
+        "blocks.4.hook_resid_pre",
+        "blocks.5.hook_resid_pre",
+        "blocks.6.hook_resid_pre",
+        "blocks.7.hook_resid_pre",
+        "blocks.8.hook_resid_pre",
+        "blocks.9.hook_resid_pre",
+        "blocks.10.hook_resid_pre",
+        "blocks.11.hook_resid_pre",
+        "blocks.11.hook_resid_post",
+    ]:    
+        sae_assessment(
+            dataset='NeelNanda/pile-10k',
+            n_samples=4096,
+            sae_model='gpt2-small-res-jb',
+            sae_id=sae_id,
+            device='cpu',
+            batch_size=32,
+            sequence_length=128,
+            activation_dir=f'data/pile10k-{sae_id}',
+            output=f'cruft/pile10k-{sae_id}.json',
+            n_feats_to_analyse=150
+        )
 
     
