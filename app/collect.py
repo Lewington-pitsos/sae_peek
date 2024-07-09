@@ -86,22 +86,21 @@ def save_sample_statistics(
     with torch.no_grad():
         stats_batch = torch.tensor([]).to(device)
         for i, batch in enumerate(tqdm(dataset.iter(batch_size), desc='Generating and Analysing Activations', total=(len(dataset)//batch_size)+1)):
+            # format input
             input_ids, attention_mask = batch['input_ids'], batch['attention_mask']
-
             if not isinstance(input_ids, torch.Tensor):
                 input_ids = torch.tensor(input_ids, device=device, dtype=torch.int)
             if not isinstance(attention_mask, torch.Tensor):
                 attention_mask = torch.tensor(attention_mask, device=device, dtype=torch.int)
 
-            batch_size = input_ids.shape[0]
+            # residuals into SAE, get features
             features = get_features(sae, transformer, input_ids, attention_mask)
-
             if n_fts_to_analyse < features.shape[2]:
                 features = features[:, :, feature_indices]
-
             features = torch.cat([features, attention_mask.unsqueeze(-1), input_ids.unsqueeze(-1)], dim=-1)
 
 
+            # calculate activation statistics, save to disk
             stats_batch = torch.cat([stats_batch, features], dim=0)
             del features
             if stats_batch.shape[0] == stats_batch_size:
