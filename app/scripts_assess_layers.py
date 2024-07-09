@@ -1,48 +1,40 @@
+import os
+import torch
 from torch.utils.data import DataLoader
 from datasets import load_dataset
 
 from sae_lens import HookedSAETransformer
 from app.peek import sae_assessment
 
-
 if __name__ == '__main__':
-    model = HookedSAETransformer.from_pretrained("gpt2", device='cuda')
-    batch_size = 256
+    os.environ["TOKENIZERS_PARALLELISM"] = "false" # or else transformers will complain about tqdm starting a parallel process.
+
+    if torch.cuda.is_available():
+        device = 'cuda'
+    else:
+        device = 'cpu'
+
+    model = HookedSAETransformer.from_pretrained("gpt2", device=device)
+    model.tokenizer.pad_token_id = model.tokenizer.eos_token_id
+    
+    batch_size = 32
     sequence_length = 128
-    n_samples = 4096
+    sae_id = "blocks.10.hook_resid_pre"
+    
+    dataset = load_dataset('NeelNanda/pile-10k', split="train")
 
-    for sae_id in [
-        "blocks.0.hook_resid_pre",
-        "blocks.1.hook_resid_pre",
-        "blocks.2.hook_resid_pre",
-        "blocks.3.hook_resid_pre",
-        "blocks.4.hook_resid_pre",
-        "blocks.5.hook_resid_pre",
-        "blocks.6.hook_resid_pre",
-        "blocks.7.hook_resid_pre",
-        "blocks.8.hook_resid_pre",
-        "blocks.9.hook_resid_pre",
-        "blocks.10.hook_resid_pre",
-        "blocks.11.hook_resid_pre",
-        "blocks.11.hook_resid_post",
-    ]:    
-        
-        dataset = load_dataset('NeelNanda/pile-10k')
-        def tokenize(x):
-            output = model.tokenizer([y['text'] for y in x], return_tensors='pt', truncation=True, max_length=sequence_length, padding='max_length')
-        
-            return output['input_ids'], output['attention_mask']
+    def tokenize(batch):
+        text_input = [b['text'] for b in batch]
+        return model.tokenizer(text_input, padding='longest', truncation=True, max_length=sequence_length)
 
-        dataset = dataset.map(tokenize, batched=True, batch_size=batch_size)
-
-
-        sae_assessment(
-            dataset=dataset[:n_samples],
-            batch_size=batch_size,
-            sae_model='gpt2-small-res-jb',
-            sae_id=sae_id,
-            transformer=model,
-            activation_dir=f'data/pile10k-v2-{sae_id}',
-            output=f'cruft/pile10k-v2-{sae_id}.json',
-            feature_indices=list(range(150, 300))
-        )
+    dl = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=tokenize)
+    
+    sae_assessment(
+        dataloader=dl,
+        batch_size=batch_size,
+        sae_model='gpt2-small-res-jb',
+        sae_id=sae_id,
+        transformer=model,
+        activation_dir=f'data/pile10k-all-{sae_id}',
+        output=f'cruft/pile10k-all-{sae_id}.json'
+    )

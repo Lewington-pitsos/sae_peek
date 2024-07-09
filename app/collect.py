@@ -57,7 +57,7 @@ def get_features(sae, transformer, input_ids, attention_mask):
 def save_sample_statistics(
         sae, 
         transformer, 
-        dataset, 
+        dataloader, 
         batch_size,
         device, 
         output, 
@@ -68,7 +68,7 @@ def save_sample_statistics(
     os.environ["TOKENIZERS_PARALLELISM"] = "false" # or else transformers will complain about tqdm starting a parallel process.
     stats_batch_size = batch_size * batches_in_stats_batch
 
-    validation_sample = next(iter(dataset))
+    validation_sample = next(iter(dataloader))
     assert 'input_ids' in validation_sample and 'attention_mask' in validation_sample, f'dataloader samples must have "attention_mask" and "input_ids" in order to be valid. First sample was: {validation_sample}'
     
     
@@ -85,14 +85,20 @@ def save_sample_statistics(
 
     with torch.no_grad():
         stats_batch = torch.tensor([]).to(device)
-        for i, batch in enumerate(tqdm(dataset.iter(batch_size), desc='Generating and Analysing Activations', total=(len(dataset)//batch_size)+1)):
+        for i, batch in enumerate(tqdm(dataloader, desc='Generating and Analysing Activations')):
             # format input
             input_ids, attention_mask = batch['input_ids'], batch['attention_mask']
+            
             if not isinstance(input_ids, torch.Tensor):
                 input_ids = torch.tensor(input_ids, device=device, dtype=torch.int)
+            else:
+                input_ids = input_ids.to(device)
+            
             if not isinstance(attention_mask, torch.Tensor):
                 attention_mask = torch.tensor(attention_mask, device=device, dtype=torch.int)
-
+            else:
+                attention_mask = attention_mask.to(device)
+            
             # residuals into SAE, get features
             features = get_features(sae, transformer, input_ids, attention_mask)
             if n_fts_to_analyse < features.shape[2]:

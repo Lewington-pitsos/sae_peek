@@ -86,7 +86,7 @@ def assess(data_dir, samples_per_feature, relative_feature_indices=None):
 
     for future in tqdm(as_completed(description_futures), desc="Getting human descriptions", total=len(description_futures)):
         result, id = future.result()
-        assessment[id]['human_description'] = result
+        assessment[id]['assessment'] = result
 
 
     return list(assessment.values())

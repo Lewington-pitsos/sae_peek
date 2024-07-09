@@ -1,13 +1,13 @@
 import torch
+from torch.utils.data import DataLoader, Dataset
 from sae_lens import HookedSAETransformer
 import pandas as pd
-from datasets import Dataset
 from transformers import GPT2Tokenizer 
 import transformers
 
 from app.peek import generate_sae_activations
 
-def load_multi_dataset():
+def load_multi_dataset(batch_size):
     df = pd.read_csv('data/us_2020_election_speeches.csv')
     biden = df[df['speaker'] == 'Joe Biden']
     trump = df[df['speaker'] == 'Donald Trump']
@@ -39,8 +39,14 @@ def load_multi_dataset():
     biden_segments = tokenize_and_segment(biden_texts, tokenizer)
     trump_segments = tokenize_and_segment(trump_texts, tokenizer)
 
-    biden_dataset = Dataset.from_list(biden_segments)
-    trump_dataset = Dataset.from_list(trump_segments)
+    def single_tensor(batch):
+        return {
+            'input_ids': torch.tensor([x['input_ids'] for x in batch]),
+            'attention_mask': torch.tensor([x['attention_mask'] for x in batch])
+        }
+
+    biden_dataset = DataLoader(biden_segments, batch_size=batch_size, shuffle=False, collate_fn=single_tensor)
+    trump_dataset = DataLoader(trump_segments, batch_size=batch_size, shuffle=False, collate_fn=single_tensor)
 
     return biden_dataset, trump_dataset
 
@@ -50,7 +56,8 @@ if __name__ == '__main__':
     else:
         device = 'cpu'
 
-    biden, trump = load_multi_dataset()
+    batch_size = 32
+    biden, trump = load_multi_dataset(batch_size)
 
     model = HookedSAETransformer.from_pretrained("gpt2", device=device)
     sae_id = "blocks.10.hook_resid_pre"
@@ -58,11 +65,11 @@ if __name__ == '__main__':
     ds_mapping = {'biden': biden, 'trump': trump }
     for name, dataset in ds_mapping.items():
         generate_sae_activations(
-            dataset=dataset,
+            dataloader=dataset,
             sae_model='gpt2-small-res-jb',
             sae_id=sae_id,
             transformer=model,
-            sae_batch_size=32,
+            batch_size=batch_size,
             batches_in_stats_batch=4,
             activation_dir=f'data/speeches-{name}',
             feature_indices=None,

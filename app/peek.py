@@ -38,7 +38,10 @@ def validate_activation_args(*args, **kwargs):
 
     samples_per_feature = kwargs.get('samples_per_feature')
     batches_in_stats_batch = kwargs.get('batches_in_stats_batch')
-    batch_size = kwargs.get('sae_batch_size')
+    batch_size = kwargs.get('batch_size')
+
+    if batches_in_stats_batch < 1:
+        raise ValueError(f'batches_in_stats_batch must be at least 1, but got {batches_in_stats_batch}')
 
     statistics_batch_size = batch_size * batches_in_stats_batch
     if samples_per_feature > statistics_batch_size:
@@ -51,8 +54,8 @@ def validate_activation_args(*args, **kwargs):
 def generate_sae_activations(
         sae_model, 
     
-        dataset,
-        sae_batch_size,
+        dataloader,
+        batch_size,
         activation_dir, 
 
 
@@ -63,6 +66,7 @@ def generate_sae_activations(
         feature_indices=None,
         batches_in_stats_batch=1,
     ):
+
     if not os.path.exists(activation_dir):
         print('Creating activation directory', activation_dir)
         os.makedirs(activation_dir)
@@ -91,8 +95,8 @@ def generate_sae_activations(
     save_sample_statistics(
         sae,
         model, 
-        dataset, 
-        sae_batch_size,
+        dataloader, 
+        batch_size,
         batches_in_stats_batch=batches_in_stats_batch,
         samples_per_feature=samples_per_feature, 
         device=device, 
@@ -106,13 +110,16 @@ def sae_assessment(
         samples_per_feature=15,
         **activation_kwargs
     ):
-    if not os.path.exists(output):
-        print('Creating output directory', output)
-        os.makedirs(output)
+    if not os.path.exists(os.path.dirname(output)):
+        print('Creating parent directory for', output)
+        os.mkdir(os.path.dirname(output))        
 
     validate_assessment_args(**locals())
 
-    generate_sae_activations(activation_dir=activation_dir, samples_per_feature=samples_per_feature, **activation_kwargs)
+    generate_sae_activations(
+        activation_dir=activation_dir, 
+        samples_per_feature=samples_per_feature,
+        **activation_kwargs)
 
     llm_assessment(activation_dir, output, samples_per_feature)
 
@@ -128,8 +135,8 @@ def sae_assessment(
 
     for d in data:
         for m in metrics_of_interest:
-            if d['human_description'] is not None:
-                means[m].append(d['human_description'][m])
+            if d['assessment'] is not None:
+                means[m].append(d['assessment'][m])
             else:
                 print(f'the assessment was None, the LLM likely failed to make an assessment')
 
