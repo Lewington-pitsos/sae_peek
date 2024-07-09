@@ -1,3 +1,5 @@
+import os
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import openai
 import json
@@ -89,7 +91,21 @@ def assess(data_dir, samples_per_feature, relative_feature_indices=None):
 
     return list(assessment.values())
 
+def validate_assessment_args(*args, **kwargs):
+    output = kwargs.get('output')
+    if os.path.exists(output):
+        raise ValueError(f'output file {output} already exists')
+
+    if not os.path.exists(os.path.dirname(output)):
+        raise ValueError(f"could not locate parent directory for output file {output}")
+
+    if not os.path.exists(CREDENTIALS_FILE):
+        raise ValueError(f"could not locate credentials file {CREDENTIALS_FILE}")
+
+
 def llm_assessment(data_dir, filename, samples_per_feature, relative_feature_indices=None):
+    validate_assessment_args(**locals())
+
     assessment = assess(data_dir, samples_per_feature, relative_feature_indices)
 
     with open(filename, 'w') as f:

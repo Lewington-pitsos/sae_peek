@@ -54,9 +54,23 @@ def get_features(sae, transformer, input_ids, attention_mask):
 
     return features
 
-def create_sample_statistics(sae, transformer, dataloader, device, output, samples_per_feature=5, feature_indices=None):
-    if feature_indices is None:
-        feature_indices = list(range(sae.cfg.d_sae))
+def save_sample_statistics(
+        sae, 
+        transformer, 
+        dataset, 
+        batch_size,
+        device, 
+        output, 
+        feature_indices, 
+        batches_in_stats_batch=1,
+        samples_per_feature=15
+    ):
+    os.environ["TOKENIZERS_PARALLELISM"] = "false" # or else transformers will complain about tqdm starting a parallel process.
+    stats_batch_size = batch_size * batches_in_stats_batch
+
+    validation_sample = next(iter(dataset))
+    assert 'input_ids' in validation_sample and 'attention_mask' in validation_sample, f'dataloader samples must have "attention_mask" and "input_ids" in order to be valid. First sample was: {validation_sample}'
+    
     
     n_fts_to_analyse = len(feature_indices)
 
@@ -70,19 +84,34 @@ def create_sample_statistics(sae, transformer, dataloader, device, output, sampl
     }
 
     with torch.no_grad():
-        for i, (input_ids, att_mask) in enumerate(tqdm(dataloader, desc='Generating and Analysing Activations')):
-            batch_size = input_ids.shape[0]
-            input_ids, att_mask = input_ids.to(device), att_mask.to(device)
-            features = get_features(sae, transformer, input_ids, att_mask)
+        stats_batch = torch.tensor([]).to(device)
+        for i, batch in enumerate(tqdm(dataset.iter(batch_size), desc='Generating and Analysing Activations', total=(len(dataset)//batch_size)+1)):
+            input_ids, attention_mask = batch['input_ids'], batch['attention_mask']
 
-            # truncate to selected features, essentially randomly sample n_features features
+            if not isinstance(input_ids, torch.Tensor):
+                input_ids = torch.tensor(input_ids, device=device, dtype=torch.int)
+            if not isinstance(attention_mask, torch.Tensor):
+                attention_mask = torch.tensor(attention_mask, device=device, dtype=torch.int)
+
+            batch_size = input_ids.shape[0]
+            features = get_features(sae, transformer, input_ids, attention_mask)
+
             if n_fts_to_analyse < features.shape[2]:
                 features = features[:, :, feature_indices]
 
-            features = torch.cat([features, att_mask.unsqueeze(-1), input_ids.unsqueeze(-1)], dim=-1)
+            features = torch.cat([features, attention_mask.unsqueeze(-1), input_ids.unsqueeze(-1)], dim=-1)
 
-            ds.add(features.to('cpu'))
 
-            collect_feature_stats(i*batch_size, n_fts_to_analyse, features, stats, samples_per_feature)
+            stats_batch = torch.cat([stats_batch, features], dim=0)
+            del features
+            if stats_batch.shape[0] == stats_batch_size:
+                collect_feature_stats(i*batch_size, n_fts_to_analyse, stats_batch, stats, samples_per_feature)
+            
+                ds.add(stats_batch.to('cpu'))
+                stats_batch = torch.tensor([]).to(device)
+
+        if stats_batch.shape[0] > 0:
+            collect_feature_stats(i*batch_size, n_fts_to_analyse, stats_batch, stats, samples_per_feature)
+            ds.add(stats_batch.to('cpu'))
 
     ds.finalize(stats)
