@@ -122,9 +122,12 @@ def get_active_sections(tokens, activations, tokenizer):
     word_tokens = [t.replace('Ġ', '') for t in word_tokens]
     norm_activations = normalize_activations(activations)
 
-    if torch.isnan(norm_activations).any():
-        print('Normalized Activations contain NaNs, skipping...')
+    if torch.max(activations) == 0:
+        print('Feature was not activated at all, skipping sample...')
         return None
+
+    if torch.isnan(norm_activations).any():
+        raise ValueError(f"NaNs found in activations {norm_activations}, this should not occur.")
 
     index_of_first_nonzero_activation = -1
     index_of_last_nonzero_activation = 0

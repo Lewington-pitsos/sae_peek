@@ -7,16 +7,18 @@ from app.constants import *
 from app.storage import ActivationDataset, data_from_tensor
 
                             
-def new_topk_samples(start_idx, acts, current_maxes, current_max_indices, k):
+def new_topk_samples(start_idx, acts, current_maxes, current_max_indices, topk):
     max_acts = torch.max(acts, dim=1).values
 
-    topk_vals, topk_indices = torch.topk(max_acts, k, dim=0)
+    current_batch_topk = min(max_acts.shape[0], topk) # in case we are on the last batch and it's smaller than usual
+
+    topk_vals, topk_indices = torch.topk(max_acts, current_batch_topk, dim=0)
     topk_indices += start_idx
 
     all_maxes = torch.cat([current_maxes, topk_vals], dim=0)
     all_indices = torch.cat([current_max_indices, topk_indices], dim=0)
 
-    new_maxes, new_indices_idx = torch.topk(all_maxes, k, dim=0)
+    new_maxes, new_indices_idx = torch.topk(all_maxes, topk, dim=0)
 
     new_indices = all_indices[new_indices_idx, torch.arange(all_indices.shape[1])]
 

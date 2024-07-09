@@ -88,6 +88,8 @@ def assess(data_dir, samples_per_feature, relative_feature_indices=None):
         result, id = future.result()
         assessment[id]['assessment'] = result
 
+    
+    del assessment['machine_representation']
 
     return list(assessment.values())
 
@@ -103,10 +105,10 @@ def validate_assessment_args(*args, **kwargs):
         raise ValueError(f"could not locate credentials file {CREDENTIALS_FILE}")
 
 
-def llm_assessment(data_dir, filename, samples_per_feature, relative_feature_indices=None):
+def llm_assessment(data_dir, output, samples_per_feature, relative_feature_indices=None):
     validate_assessment_args(**locals())
 
     assessment = assess(data_dir, samples_per_feature, relative_feature_indices)
 
-    with open(filename, 'w') as f:
+    with open(output, 'w') as f:
         json.dump(assessment, f, indent=4)
