@@ -105,7 +105,7 @@ def validate_assessment_args(*args, **kwargs):
         raise ValueError(f"could not locate credentials file {CREDENTIALS_FILE}")
 
 
-def llm_assessment(data_dir, output, samples_per_feature, relative_feature_indices=None):
+def llm_assessment(data_dir, output, samples_per_feature=None, relative_feature_indices=None):
     validate_assessment_args(**locals())
 
     assessment = assess(data_dir, samples_per_feature, relative_feature_indices)

@@ -72,7 +72,7 @@ if __name__ == '__main__':
             batch_size=batch_size,
             batches_in_stats_batch=4,
             activation_dir=f'data/speeches-{name}',
-            feature_indices=None,
+            feature_indices=list(range(256)),
             device=device
         )
     
