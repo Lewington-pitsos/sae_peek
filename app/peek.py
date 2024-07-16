@@ -58,7 +58,6 @@ def generate_sae_activations(
         batch_size,
         activation_dir, 
 
-
         device=None, 
         transformer=None, 
         samples_per_feature=15,

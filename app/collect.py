@@ -129,6 +129,5 @@ def save_sample_statistics(
     stats['mean'] /= n_outer_batches
     stats['nonzero_proportion'] /= n_outer_batches
 
-
     ds.finalize(stats)
     

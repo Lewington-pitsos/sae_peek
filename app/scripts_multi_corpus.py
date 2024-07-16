@@ -5,9 +5,10 @@ import pandas as pd
 from transformers import GPT2Tokenizer 
 import transformers
 
-from app.peek import generate_sae_activations
+from app.scripts import load_pile10k
+from app.peek import generate_sae_activations, llm_assessment
 
-def load_multi_dataset(batch_size):
+def load_multi_dataset(tokenizer, batch_size, sequence_length):
     df = pd.read_csv('data/us_2020_election_speeches.csv')
     biden = df[df['speaker'] == 'Joe Biden']
     trump = df[df['speaker'] == 'Donald Trump']
@@ -19,17 +20,16 @@ def load_multi_dataset(batch_size):
     trump_texts = trump['text'].tolist()
 
     transformers.logging.set_verbosity_error()
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
 
-    def tokenize_and_segment(texts, tokenizer, max_length=256, overlap=5):
+    def tokenize_and_segment(texts, tokenizer, overlap=5):
         segments = []
         for text in texts:
             tokens = tokenizer(text)['input_ids']
-            for i in range(0, len(tokens), max_length - overlap):
-                segment = tokens[i:i + max_length]
+            for i in range(0, len(tokens), sequence_length - overlap):
+                segment = tokens[i:i + sequence_length]
                 attention_mask = [1] * len(segment)
-                if len(segment) < max_length:
-                    padding = [0] * (max_length - len(segment))
+                if len(segment) < sequence_length:
+                    padding = [0] * (sequence_length - len(segment))
                     segment += padding
                     attention_mask += padding
                 segments.append({"input_ids": segment, "attention_mask": attention_mask})
@@ -57,12 +57,22 @@ if __name__ == '__main__':
         device = 'cpu'
 
     batch_size = 32
-    biden, trump = load_multi_dataset(batch_size)
+    sequence_length = 256
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    tokenizer.pad_token = tokenizer.eos_token
+    
+    biden, trump = load_multi_dataset(tokenizer, batch_size, sequence_length)
+    pile10k = load_pile10k(tokenizer, batch_size,  sequence_length, 5000)
 
     model = HookedSAETransformer.from_pretrained("gpt2", device=device)
     sae_id = "blocks.10.hook_resid_pre"
 
-    ds_mapping = {'biden': biden, 'trump': trump }
+    ds_mapping = {
+        # 'biden': biden, 
+        # 'trump': trump, 
+        'pile10k': pile10k 
+    }
+
     for name, dataset in ds_mapping.items():
         generate_sae_activations(
             dataloader=dataset,
@@ -78,4 +88,4 @@ if __name__ == '__main__':
     
     print('finished generating activations')
 
-
+    llm_assessment('data/speeches-pile10k', output='cruft/speeches-pile10k', samples_per_feature=10)
