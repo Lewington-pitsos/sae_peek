@@ -84,12 +84,10 @@ def assess(data_dir, samples_per_feature, relative_feature_indices=None):
         for f in assessment.values():
             description_futures.append(executor.submit(describe_feature, f['machine_representation'], f['feature']))
 
-    for future in tqdm(as_completed(description_futures), desc="Getting human descriptions", total=len(description_futures)):
-        result, id = future.result()
-        assessment[id]['assessment'] = result
-
-    
-    del assessment['machine_representation']
+        for future in tqdm(as_completed(description_futures), desc="Getting human descriptions", total=len(description_futures)):
+            result, id = future.result()
+            assessment[id]['assessment'] = result
+            del assessment[id]['machine_representation']
 
     return list(assessment.values())
 

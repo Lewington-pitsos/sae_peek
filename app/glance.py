@@ -27,7 +27,6 @@ class Corpus():
         random_indices = torch.randperm(self.n_fts)[:k]
         
         return self.by_relative_idx(random_indices)
-        
 
     def features_by_metric(self, metric, stop=1, start=0):
         if metric not in METRIC_NAMES:
@@ -85,7 +84,7 @@ class Corpus():
             feature_activation_samples = []
             for sample_index in f['samples']:
                 tokens, all_feature_activations = data_mapping[int(sample_index)]
-                feature_specific_activations = all_feature_activations[:, f['relative_index']].squeeze()
+                feature_specific_activations = all_feature_activations[:, :, f['relative_index']].squeeze()
                 feature_activation_samples.append((tokens, feature_specific_activations))
                 
             f['samples'] = feature_activation_samples
@@ -96,17 +95,15 @@ class Corpus():
         mapping = {}
 
         for sample_idx, sample_data in tqdm(self.ds.samples_for_indices(sample_indices), desc="Loading samples from disk", total=len(sample_indices)):
-
             attention_mask, tokens, activations = data_from_tensor(sample_data, self.n_fts)
             seq_len = int(torch.sum(attention_mask).item())
             tokens = tokens.squeeze()[:seq_len]
-            activations = activations.squeeze()[:seq_len, :].squeeze()
+            activations = activations[:seq_len, :]
 
             mapping[sample_idx] = (tokens, activations)
 
         
         return mapping
-
 
 def active_sections_across_samples(samples, tokenizer):
     active_sections = []
@@ -123,7 +120,7 @@ def get_active_sections(tokens, activations, tokenizer):
     norm_activations = normalize_activations(activations)
 
     if torch.max(activations) == 0:
-        print('Feature was not activated at all, skipping sample...')
+        print('Sample did not activate for feature, skipping sample...')
         return None
 
     if torch.isnan(norm_activations).any():
