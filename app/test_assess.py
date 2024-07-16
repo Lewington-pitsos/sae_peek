@@ -38,8 +38,6 @@ def test_feature_representation(tokenizer):
 
     activations2 = torch.tensor(activations2)
     
-
-
     feature = {
         'samples': [
             (story_tokens, activations),
@@ -47,7 +45,7 @@ def test_feature_representation(tokenizer):
         ]
     }
 
-    rep = feature_representation(feature, tokenizer)
+    rep, _ = feature_representation(feature, tokenizer)
 
     assert len(rep) > 0
     assert len(rep) > 100
