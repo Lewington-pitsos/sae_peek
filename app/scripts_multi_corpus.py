@@ -68,8 +68,8 @@ if __name__ == '__main__':
     sae_id = "blocks.10.hook_resid_pre"
 
     ds_mapping = {
-        # 'biden': biden, 
-        # 'trump': trump, 
+        'biden': biden, 
+        'trump': trump, 
         'pile10k': pile10k 
     }
 
@@ -88,4 +88,4 @@ if __name__ == '__main__':
     
     print('finished generating activations')
 
-    llm_assessment('data/speeches-pile10k', output='cruft/speeches-pile10k', samples_per_feature=10)
+    llm_assessment('data/speeches-pile10k', output='cruft/speeches-pile10k.json', samples_per_feature=10)
