@@ -21,6 +21,8 @@ def test_loads_pile10k(tokenizer):
 
     assert n['input_ids'].shape[0] == batch_size
     assert n['attention_mask'].shape[0] == batch_size
+    assert n['input_ids'].shape[1] <= sequence_length
+    assert n['attention_mask'].shape[1] <= sequence_length
     assert len(n.keys()) == 2
 
 def test_loads_aesop(tokenizer):
@@ -34,5 +36,7 @@ def test_loads_aesop(tokenizer):
 
     assert n['input_ids'].shape[0] == batch_size
     assert n['attention_mask'].shape[0] == batch_size
+    assert n['input_ids'].shape[1] <= sequence_length
+    assert n['attention_mask'].shape[1] <= sequence_length
     assert len(n.keys()) == 2
 
