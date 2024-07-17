@@ -21,8 +21,8 @@ def dual_analysis():
     pos = Corpus('data/gpt2-imdb-pos')
     neg = Corpus('data/gpt2-imdb-neg')
 
-    pos_nonzero_prop = pos.stats_tensor['max_activations'][0]
-    neg_nonzero_prop = neg.stats_tensor['max_activations'][0]
+    pos_nonzero_prop = pos.stats['max_activations'][0]
+    neg_nonzero_prop = neg.stats['max_activations'][0]
 
     delta_nonzero_prop = (pos_nonzero_prop - neg_nonzero_prop)
 

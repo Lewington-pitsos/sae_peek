@@ -17,10 +17,10 @@ class Corpus():
 
     @property
     def feature_indices(self):
-        return self.stats_tensor['feature_indices'].to(torch.int).tolist()
+        return self.stats['feature_indices'].to(torch.int).tolist()
 
     @property
-    def stats_tensor(self):
+    def stats(self):
         return self._stats_tensor
 
     def random_features(self, k=1):
@@ -90,6 +90,16 @@ class Corpus():
             f['samples'] = feature_activation_samples
 
         return feature_data
+    
+    def load_all_activations(self):
+        data = torch.tensor(self.ds.greedy_load_activations())
+        _, _, activations = data_from_tensor(data, self.n_fts)
+
+        return activations
+    
+    def load_all_data(self):
+        data = torch.tensor(self.ds.greedy_load_activations())
+        return data_from_tensor(data, self.n_fts)
 
     def load_mapping(self, sample_indices):
         mapping = {}

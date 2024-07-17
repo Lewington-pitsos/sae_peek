@@ -113,6 +113,8 @@ def save_sample_statistics(
             features = torch.cat([features, attention_mask.unsqueeze(-1), input_ids.unsqueeze(-1)], dim=-1)
 
             # calculate activation statistics, save to disk
+            
+
             outer_batch = torch.cat([outer_batch, features], dim=0)
             del features
             if outer_batch.shape[0] == outer_batch_size:

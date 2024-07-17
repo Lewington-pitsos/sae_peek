@@ -56,20 +56,20 @@ if __name__ == '__main__':
     else:
         device = 'cpu'
 
-    batch_size = 32
+    batch_size = 4
     sequence_length = 256
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
     tokenizer.pad_token = tokenizer.eos_token
     
     biden, trump = load_multi_dataset(tokenizer, batch_size, sequence_length)
-    pile10k = load_pile10k(tokenizer, batch_size,  sequence_length, 5000)
+    pile10k = load_pile10k(tokenizer, batch_size,  sequence_length, num_samples=None)
 
     model = HookedSAETransformer.from_pretrained("gpt2", device=device)
     sae_id = "blocks.10.hook_resid_pre"
 
     ds_mapping = {
-        'biden': biden, 
-        'trump': trump, 
+        # 'biden': biden, 
+        # 'trump': trump, 
         'pile10k': pile10k 
     }
 
@@ -81,11 +81,11 @@ if __name__ == '__main__':
             transformer=model,
             batch_size=batch_size,
             batches_in_stats_batch=4,
-            activation_dir=f'data/speeches-{name}',
-            feature_indices=list(range(256)),
+            activation_dir=f'data/2048-{name}',
+            feature_indices=list(range(2048)),
             device=device
         )
     
     print('finished generating activations')
 
-    llm_assessment('data/speeches-pile10k', output='cruft/speeches-pile10k.json', samples_per_feature=10)
+    llm_assessment('data/2048-pile10k', output='cruft/pile10k-2048.json', samples_per_feature=10)

@@ -68,10 +68,10 @@ class ActivationDataset():
                 sample_data = torch.tensor(dataset[idx, :]).unsqueeze(0)
                 yield idx, sample_data
 
-    def lazy_load_activations(self):
+    def greedy_load_activations(self):
         with h5py.File(self.h5_name, 'r') as h5file:
-            dataset = h5file[DATA_KEY]
-            yield 0, dataset
+            dataset = h5file[DATA_KEY][:]
+        return dataset
 
     def finalize(self, stats):
         torch.save(stats, os.path.join(self.data_dir, 'stats.pt'))    
