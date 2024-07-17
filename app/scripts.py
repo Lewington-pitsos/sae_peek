@@ -100,13 +100,16 @@ def _clear_dataloader(texts, tokenizer, batch_size, sequence_length, padding='ma
     return dl
 
 # Main function to load DataLoader
-def load_clear(tokenizer, batch_size, sequence_length):
+def load_clear(tokenizer, batch_size, sequence_length, padding='max_length'):
+    if sequence_length > 512:
+        print("Warning: the CLEAR dataset has a max sequence length of 389, so anything above 512 is overkill")
+        
     if not os.path.exists(LOCAL_CLEAR_FILENAME):
         print(f"{LOCAL_CLEAR_FILENAME} does not exist. Downloading...")
         _download_file(CLEAR_URL, LOCAL_CLEAR_FILENAME)
 
     data = pd.read_excel(LOCAL_CLEAR_FILENAME) 
-    dataloader = _clear_dataloader(data, tokenizer, batch_size, sequence_length)
+    dataloader = _clear_dataloader(data, tokenizer, batch_size, sequence_length, padding=padding)
     return dataloader
 
 # ---------------------------------------------------------------------------------------------------------
