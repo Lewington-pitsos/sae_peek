@@ -116,8 +116,9 @@ def load_clear(tokenizer, batch_size, sequence_length, padding='max_length'):
 # ------------------------------------------------- PILE -------------------------------------------------
 # ---------------------------------------------------------------------------------------------------------
 
-def load_pile10k(tokenizer, batch_size, sequence_length, num_samples=5000, padding='max_length'):
+def load_pile10k(tokenizer, batch_size, sequence_length, num_samples=None, padding='max_length'):
     dataset = load_dataset('NeelNanda/pile-10k', split="train")
+    
     if num_samples is not None:
         dataset = dataset.select(range(num_samples))
 
