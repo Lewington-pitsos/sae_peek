@@ -55,7 +55,6 @@ def generate_sae_activations(
         sae_model, 
     
         dataloader,
-        batch_size,
         activation_dir, 
 
         device=None, 
@@ -95,7 +94,6 @@ def generate_sae_activations(
         sae,
         model, 
         dataloader, 
-        batch_size,
         batches_in_stats_batch=batches_in_stats_batch,
         samples_per_feature=samples_per_feature, 
         device=device, 

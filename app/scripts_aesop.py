@@ -8,9 +8,6 @@ if torch.cuda.is_available():
 else:
     device = 'cpu'
 
-batch_size = 32
-sequence_length = 768
-
 model = HookedSAETransformer.from_pretrained("gpt2", device=device)
 sae_id = "blocks.10.hook_resid_pre"
 
@@ -19,29 +16,33 @@ tokenizer.pad_token = tokenizer.eos_token
 
 params = [
     {
-        'name': 'aesop-all',
-        'load_fn': load_aesop,
-        'sequence_length': 768
-    },
-    {
         'name': 'pile10k-all',
         'load_fn': load_pile10k,
-        'sequence_length': 2048
-    }
+        'sequence_length': 1024,
+        'batch_size': 32,
+        'batches_in_stats_batch': 2
+    },
+    {
+        'name': 'aesop-all',
+        'load_fn': load_aesop,
+        'sequence_length': 768,
+        'batch_size': 64,
+        'batches_in_stats_batch': 2
+    },
+
 ]
 
-for param in params:
-    aesop = params['load_fn'](tokenizer, batch_size, sequence_length)
+for p in params:
+    aesop = p['load_fn'](tokenizer, p['batch_size'], p['sequence_length'])
 
-    activation_dir = f'data/{param["name"]}'
+    activation_dir = f'data/{p["name"]}'
 
     generate_sae_activations(
         dataloader=aesop,
         sae_model='gpt2-small-res-jb',
         sae_id=sae_id,
         transformer=model,
-        batch_size=batch_size,
-        batches_in_stats_batch=8,
+        batches_in_stats_batch=p['batches_in_stats_batch'],
         activation_dir=activation_dir,
         feature_indices=None,
         device=device

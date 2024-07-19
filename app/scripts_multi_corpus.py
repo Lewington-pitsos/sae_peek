@@ -79,7 +79,6 @@ if __name__ == '__main__':
             sae_model='gpt2-small-res-jb',
             sae_id=sae_id,
             transformer=model,
-            batch_size=batch_size,
             batches_in_stats_batch=4,
             activation_dir=f'data/2048-{name}',
             feature_indices=list(range(2048)),

@@ -1,5 +1,19 @@
-from app.collect import new_topk_samples
+from app.collect import new_topk_samples, _init_stats, collect_feature_stats
 import torch
+
+def test_keeps_raw_activations():
+    start_idx = 512
+    n_ft = 128
+    seq_len = 64
+    batch_size = 256
+    samples_to_save = 10
+    activations = torch.rand(batch_size, seq_len, n_ft + 2)
+
+    stats = _init_stats(n_ft, 'cpu', list(range(n_ft)), samples_to_save, seq_len)
+
+    collect_feature_stats(start_idx, n_ft, activations, stats, topk=samples_to_save)
+
+    assert 'top_samples' in stats
 
 def test_new_topk():
 

@@ -69,11 +69,22 @@ def typecast(input_ids, attention_mask, device):
     return input_ids, attention_mask
 
 
+def _init_stats(n_fts_to_analyse, device, feature_indices, samples_per_feature, sequence_length):
+    return {
+        'mean': torch.zeros(n_fts_to_analyse).to(device),
+        'nonzero_proportion': torch.zeros(n_fts_to_analyse).to(device),
+        'max_activations': torch.zeros(samples_per_feature, n_fts_to_analyse).to(device),
+        
+        'feature_indices': torch.tensor(feature_indices),
+
+        'max_activation_indices': torch.empty(samples_per_feature, n_fts_to_analyse).to(device),
+        'top_samples': torch.empty(samples_per_feature, sequence_length, n_fts_to_analyse)
+    }
+
 def save_sample_statistics(
         sae, 
         transformer, 
         dataloader, 
-        batch_size,
         device, 
         output, 
         feature_indices, 
@@ -86,17 +97,19 @@ def save_sample_statistics(
     validation_sample = next(iter(dataloader))
     assert 'input_ids' in validation_sample and 'attention_mask' in validation_sample, f'dataloader samples must have "attention_mask" and "input_ids" in order to be valid. First sample was: {validation_sample}'
     
-    
+
+    batch_size = validation_sample['input_ids'].shape[0]
+    sequence_length = validation_sample['input_ids'].shape[1]
     n_fts_to_analyse = len(feature_indices)
 
     ds = ActivationDataset(output)
-    stats = {
-        'mean': torch.zeros(n_fts_to_analyse).to(device),
-        'feature_indices': torch.tensor(feature_indices),
-        'nonzero_proportion': torch.zeros(n_fts_to_analyse).to(device),
-        'max_activations': torch.zeros(samples_per_feature, n_fts_to_analyse).to(device),
-        'max_activation_indices': torch.zeros(samples_per_feature, n_fts_to_analyse).to(device),
-    }
+    stats = _init_stats(
+        n_fts_to_analyse=n_fts_to_analyse, 
+        device=device, 
+        feature_indices=feature_indices, 
+        samples_per_feature=samples_per_feature,
+        sequence_length=sequence_length
+    )
 
     with torch.no_grad():
         outer_batch = torch.tensor([]).to(device)
