@@ -18,16 +18,16 @@ def new_topk_samples(start_idx, current_samples, samples, masked_activations, cu
 
     topk_vals, topk_indices = torch.topk(max_acts, k=current_batch_topk, dim=0)
     topk_indices += start_idx
-    # topk_samples_for_each_feature = samples[topk_indices]
+    topk_samples_for_each_feature = samples[topk_indices]
 
     all_maxes = torch.cat([current_maxes, topk_vals], dim=0)
     all_indices = torch.cat([current_max_indices, topk_indices], dim=0)
-    # all_samples = torch.cat([current_samples, topk_samples_for_each_feature])
+    all_samples = torch.cat([current_samples, topk_samples_for_each_feature])
 
     new_maxes, new_indices_idx = torch.topk(all_maxes, topk, dim=0)
 
     new_indices = torch.gather(all_indices, dim=0, index=new_indices_idx)
-    # new_samples = all_samples[new_indices_idx, torch.arange(all_indices.shape[1])]
+    new_samples = torch.gather(all_samples, dim=0, index=new_indices_idx.unsqueeze(-1).unsqueeze(-1).expand([current_batch_topk] + all_samples.shape[1:]))
 
 
     return new_maxes, new_indices
