@@ -26,7 +26,7 @@ def new_topk_samples(start_idx, current_samples, samples, masked_activations, cu
 
     new_maxes, new_indices_idx = torch.topk(all_maxes, topk, dim=0)
 
-    new_indices = all_indices[new_indices_idx, torch.arange(all_indices.shape[1])]
+    new_indices = torch.gather(all_indices, dim=0, index=new_indices_idx)
     # new_samples = all_samples[new_indices_idx, torch.arange(all_indices.shape[1])]
 
 
