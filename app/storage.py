@@ -4,7 +4,7 @@ import h5py
 from abc import ABC
 
 def data_from_tensor(tensor, n_ft):
-    assert tensor.dim() == 3, f"Expected tensor to have 3 dimensions, got {tensor.shape()}"
+    assert tensor.dim() == 3, f"Expected tensor to have 3 dimensions, got {tensor.shape}"
     assert tensor.shape[2] == n_ft + 2, f"Expected tensor to have {n_ft + 2} features, got {tensor.shape[2]}"
 
     attention_mask = tensor[:, :, n_ft: n_ft + 1]  # (bs, seq_len, 1)

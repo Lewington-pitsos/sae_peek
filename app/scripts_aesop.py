@@ -16,13 +16,6 @@ tokenizer.pad_token = tokenizer.eos_token
 
 params = [
     {
-        'name': 'pile10k-all',
-        'load_fn': load_pile10k,
-        'sequence_length': 1024,
-        'batch_size': 32,
-        'batches_in_stats_batch': 2
-    },
-    {
         'name': 'aesop-all',
         'load_fn': load_aesop,
         'sequence_length': 768,
@@ -30,10 +23,17 @@ params = [
         'batches_in_stats_batch': 2
     },
 
+    {
+        'name': 'pile10k-all',
+        'load_fn': load_pile10k,
+        'sequence_length': 1024,
+        'batch_size': 32,
+        'batches_in_stats_batch': 2
+    },
 ]
 
 for p in params:
-    aesop = p['load_fn'](tokenizer, int(p['batch_size'] / 4), p['sequence_length'])
+    aesop = p['load_fn'](tokenizer, int(p['batch_size'] / 8), p['sequence_length'])
 
     activation_dir = f'data/{p["name"]}'
 

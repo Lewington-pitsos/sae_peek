@@ -22,7 +22,6 @@ def new_topk_samples(start_idx, current_samples, samples, masked_activations, cu
 
     all_maxes = torch.cat([current_maxes, topk_vals], dim=0)
     all_indices = torch.cat([current_max_indices, topk_indices], dim=0)
-    print(current_samples.shape, topk_samples_for_each_feature.shape)
     all_samples = torch.cat([current_samples, topk_samples_for_each_feature])
 
     new_maxes, new_indices_idx = torch.topk(all_maxes, topk, dim=0)
