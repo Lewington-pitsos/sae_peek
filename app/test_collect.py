@@ -132,6 +132,32 @@ def test_new_topk_case0():
 
     assert new_samples.shape == current_samples.shape
 
+    expected_samples = torch.tensor([[[[  3.,  88.,   1.],
+          [  2.,  88.,   1.]],
+
+         [[  4., 391.,   1.],
+          [  1., 222.,   1.]],
+
+         [[  0.,   0.,   0.],
+          [  0.,   0.,   0.]],
+
+         [[  1., 391.,   1.],
+          [ 12., 222.,   1.]]],
+
+
+        [[[  2.,  88.,   1.],
+          [  2.,  88.,   1.]],
+
+         [[  2.,  88.,   1.],
+          [  1.,  88.,   1.]],
+
+         [[  0.,   0.,   0.],
+          [  0.,   0.,   0.]],
+
+         [[  7., 101.,   1.],
+          [ 11., 102.,   1.]]]])
+    assert torch.all(new_samples == expected_samples)
+
 
 def test_new_topk_case1():
     start_idx = 200
