@@ -7,25 +7,33 @@ from app.constants import *
 from app.storage import ActivationDataset, data_from_tensor
 
                             
-def new_topk_samples(start_idx, acts, current_maxes, current_max_indices, topk):
-    max_acts = torch.max(acts, dim=1).values
+def new_topk_samples(start_idx, current_samples, samples, masked_activations, current_maxes, current_max_indices, topk):
+    # assert samples.shape[0] == masked_activations.shape[0], f'samples and activations must have the same number of samples. Got {samples.shape} samples and {masked_activations.shape} activations.'
+    # assert samples.shape[1] + 2 == masked_activations.shape[1], f'samples must have 2 more sequence length than activations. Got {samples.shape} samples and {masked_activations.shape} activations.'
+    # assert samples.shape[2] == masked_activations.shape[2], f'samples and activations must have the same number of features. Got {samples.shape} samples and {masked_activations.shape} activations.'
+   
+    max_acts = torch.max(masked_activations, dim=1).values
 
     current_batch_topk = min(max_acts.shape[0], topk) # in case we are on the last batch and it's smaller than usual
 
     topk_vals, topk_indices = torch.topk(max_acts, k=current_batch_topk, dim=0)
     topk_indices += start_idx
+    # topk_samples_for_each_feature = samples[topk_indices]
 
     all_maxes = torch.cat([current_maxes, topk_vals], dim=0)
     all_indices = torch.cat([current_max_indices, topk_indices], dim=0)
+    # all_samples = torch.cat([current_samples, topk_samples_for_each_feature])
 
     new_maxes, new_indices_idx = torch.topk(all_maxes, topk, dim=0)
 
     new_indices = all_indices[new_indices_idx, torch.arange(all_indices.shape[1])]
+    # new_samples = all_samples[new_indices_idx, torch.arange(all_indices.shape[1])]
+
 
     return new_maxes, new_indices
 
-def collect_feature_stats(start_idx, n_ft, activations, stats, topk):
-    attention_mask, _, activations = data_from_tensor(activations, n_ft)
+def collect_feature_stats(start_idx, n_ft, samples, stats, topk):
+    attention_mask, _, activations = data_from_tensor(samples, n_ft)
 
     masked_activations = activations * attention_mask
 
@@ -40,7 +48,6 @@ def collect_feature_stats(start_idx, n_ft, activations, stats, topk):
     stats['nonzero_proportion'].add_(batch_nonzero_prop)
 
     stats['max_activations'], stats['max_activation_indices'] = new_topk_samples(start_idx, masked_activations, stats['max_activations'], stats['max_activation_indices'], topk)
-
 
 def get_features(sae, transformer, input_ids, attention_mask):
     _, cache = transformer.run_with_cache(
@@ -78,7 +85,7 @@ def _init_stats(n_fts_to_analyse, device, feature_indices, samples_per_feature, 
         'feature_indices': torch.tensor(feature_indices),
 
         'max_activation_indices': torch.empty(samples_per_feature, n_fts_to_analyse).to(device),
-        'top_samples': torch.empty(samples_per_feature, sequence_length, n_fts_to_analyse)
+        'top_samples': torch.empty(samples_per_feature, sequence_length, n_fts_to_analyse + 2)
     }
 
 def save_sample_statistics(
