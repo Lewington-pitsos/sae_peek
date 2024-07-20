@@ -118,7 +118,7 @@ def test_new_topk():
 
     topk = 2
 
-    new_maxes, new_indices = new_topk_samples(start_idx, current_samples, incoming_samples, acts, current_maxes, current_max_indices, topk)
+    new_maxes, new_indices, new_samples = new_topk_samples(start_idx, current_samples, incoming_samples, acts, current_maxes, current_max_indices, topk)
 
     assert torch.all(new_maxes == torch.tensor([
         [87, 4, 12, 12],
@@ -129,6 +129,9 @@ def test_new_topk():
         [1, 15, 3, 15],
         [2, 0, 11, 14]
     ]))
+
+    assert new_samples.shape == current_samples.shape
+
 
 def test_new_topk_case1():
     start_idx = 200
@@ -186,6 +189,10 @@ def test_new_topk_case1():
                 [0,0,0,0, 0,0, 0],  
             ],
             [
+                [0,0,0,0, 0, 0, 0],
+                [0,0,0,0, 0,0, 0],  
+            ],
+            [
                 [0,0,0,0, 0,0, 0],
                 [0,0,0,0, 0,0, 0],  
             ],
@@ -194,6 +201,10 @@ def test_new_topk_case1():
             [
                 [1, 0, 2, 2, 0, 88, 1],
                 [1, 1, 2, 2, 0, 88, 1],
+            ],
+            [
+                [1, 1, 2, 2, 0, 88, 1],
+                [1, 1, 1, 1, 0, 88, 1],
             ],
             [
                 [1, 1, 2, 2, 0, 88, 1],
@@ -213,7 +224,7 @@ def test_new_topk_case1():
 
     topk = 2
 
-    new_maxes, new_indices = new_topk_samples(start_idx, current_samples, incoming_samples, acts, current_maxes, current_max_indices, topk)
+    new_maxes, new_indices, new_samples = new_topk_samples(start_idx, current_samples, incoming_samples, acts, current_maxes, current_max_indices, topk)
 
     assert torch.all(new_maxes == torch.tensor([
         [5,  9,  9, 12,  8],
@@ -224,6 +235,7 @@ def test_new_topk_case1():
         [2, 202, 200, 201, 202],
         [201, 200, 201, 200, 200]
     ]))
+    assert new_samples.shape == current_samples.shape
 
 
 
@@ -318,7 +330,7 @@ def test_new_topk_case2():
                 [7, 9, 4, 77, 1],  
             ],
         ],
-                [
+            [
             [
                 [6, 7, 2, 121, 1],
                 [9, 1, 3, 121, 1],
@@ -337,7 +349,7 @@ def test_new_topk_case2():
 
     topk = 4
 
-    new_maxes, new_indices = new_topk_samples(start_idx, current_samples, incoming_samples, acts, current_maxes, current_max_indices, topk)
+    new_maxes, new_indices, new_samples = new_topk_samples(start_idx, current_samples, incoming_samples, acts, current_maxes, current_max_indices, topk)
 
     assert torch.all(new_maxes == torch.tensor([[9, 9, 9],
         [7, 7, 8],
@@ -350,3 +362,5 @@ def test_new_topk_case2():
         [ 3, 65, 66],
         [65,  7, 64]]
     ))
+    assert new_samples.shape == current_samples.shape
+

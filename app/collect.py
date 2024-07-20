@@ -17,8 +17,8 @@ def new_topk_samples(start_idx, current_samples, samples, masked_activations, cu
     current_batch_topk = min(max_acts.shape[0], topk) # in case we are on the last batch and it's smaller than usual
 
     topk_vals, topk_indices = torch.topk(max_acts, k=current_batch_topk, dim=0)
-    topk_indices += start_idx
     topk_samples_for_each_feature = samples[topk_indices]
+    topk_indices += start_idx
 
     all_maxes = torch.cat([current_maxes, topk_vals], dim=0)
     all_indices = torch.cat([current_max_indices, topk_indices], dim=0)
@@ -27,10 +27,10 @@ def new_topk_samples(start_idx, current_samples, samples, masked_activations, cu
     new_maxes, new_indices_idx = torch.topk(all_maxes, topk, dim=0)
 
     new_indices = torch.gather(all_indices, dim=0, index=new_indices_idx)
-    new_samples = torch.gather(all_samples, dim=0, index=new_indices_idx.unsqueeze(-1).unsqueeze(-1).expand([current_batch_topk] + all_samples.shape[1:]))
+    new_samples = torch.gather(all_samples, dim=0, index=new_indices_idx.unsqueeze(-1).unsqueeze(-1).expand([new_indices_idx.shape[0]] + list(all_samples.shape[1:])))
 
 
-    return new_maxes, new_indices
+    return new_maxes, new_indices, new_samples
 
 def collect_feature_stats(start_idx, n_ft, samples, stats, topk):
     attention_mask, _, activations = data_from_tensor(samples, n_ft)
