@@ -17,7 +17,12 @@ def new_topk_samples(start_idx, current_samples, samples, masked_activations, cu
     current_batch_topk = min(max_acts.shape[0], topk) # in case we are on the last batch and it's smaller than usual
 
     topk_vals, topk_indices = torch.topk(max_acts, k=current_batch_topk, dim=0)
-    topk_samples_for_each_feature = samples[topk_indices]
+    topk_samples_for_each_feature = torch.tensor([])
+    
+    for i in range(masked_activations.shape[2]):
+        topk_for_feat = samples[:, :, [i, -2, -1]][topk_indices[:, i]].unsqueeze(1)
+        topk_samples_for_each_feature = torch.cat([topk_samples_for_each_feature, topk_for_feat], dim=1)
+    
     topk_indices += start_idx
 
     all_maxes = torch.cat([current_maxes, topk_vals], dim=0)
@@ -93,7 +98,7 @@ def _init_stats(n_fts_to_analyse, device, feature_indices, samples_per_feature, 
         'feature_indices': torch.tensor(feature_indices),
 
         'max_activation_indices': torch.empty(samples_per_feature, n_fts_to_analyse).to(device),
-        'top_samples': torch.empty(samples_per_feature, n_fts_to_analyse, sequence_length, n_fts_to_analyse + 2)
+        'top_samples': torch.empty(samples_per_feature, n_fts_to_analyse, sequence_length, 3)
     }
 
 def save_sample_statistics(
