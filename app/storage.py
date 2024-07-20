@@ -1,6 +1,7 @@
 import torch
 import os
 import h5py
+from abc import ABC
 
 def data_from_tensor(tensor, n_ft):
     assert tensor.dim() == 3, f"Expected tensor to have 3 dimensions, got {tensor.shape()}"
@@ -14,15 +15,29 @@ def data_from_tensor(tensor, n_ft):
 
 DATA_KEY = 'data'
 
-class ActivationDataset():
-    def __init__(self, data_dir, max_samples_in_memory=512):
-        self.activations = torch.tensor([])
+class _StatSaver():
+    def __init__(self, data_dir) -> None:
         self.data_dir = data_dir
-        self.max_samples_in_memory = max_samples_in_memory
-        self.total_samples_saved = 0  # To keep track of the total number of samples saved
 
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
+
+    def add(self, activations):
+        raise NotImplementedError
+
+    def finalize(self, stats):
+        torch.save(stats, os.path.join(self.data_dir, 'stats.pt'))    
+
+class StatDataset(_StatSaver):
+    def add(self, activations):
+        pass
+
+class ActivationDataset(_StatSaver):
+    def __init__(self, data_dir, max_samples_in_memory=512):
+        super().__init__(data_dir)
+        self.activations = torch.tensor([])
+        self.max_samples_in_memory = max_samples_in_memory
+        self.total_samples_saved = 0  # To keep track of the total number of samples saved
 
         self.h5_name = os.path.join(self.data_dir, f"{DATA_KEY}.h5")
         self._dataset_initialized = os.path.exists(self.h5_name)
@@ -72,10 +87,10 @@ class ActivationDataset():
         with h5py.File(self.h5_name, 'r') as h5file:
             dataset = h5file[DATA_KEY][:]
         return dataset
-
+    
     def finalize(self, stats):
-        torch.save(stats, os.path.join(self.data_dir, 'stats.pt'))    
+        super().finalize(stats)
         self.save_activations()
-
+    
     def load_stats(self, device='cpu'):
         return torch.load(os.path.join(self.data_dir, 'stats.pt'), map_location=device)

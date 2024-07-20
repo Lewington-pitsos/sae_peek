@@ -36,19 +36,9 @@ def validate_activation_args(*args, **kwargs):
         if not len(os.listdir(activation_dir)) == 0:
             raise ValueError(f'activation_dir {activation_dir} already exists and is not empty')
 
-    samples_per_feature = kwargs.get('samples_per_feature')
     batches_in_stats_batch = kwargs.get('batches_in_stats_batch')
-    batch_size = kwargs.get('batch_size')
-
     if batches_in_stats_batch < 1:
         raise ValueError(f'batches_in_stats_batch must be at least 1, but got {batches_in_stats_batch}')
-
-    statistics_batch_size = batch_size * batches_in_stats_batch
-    if samples_per_feature > statistics_batch_size:
-        raise ValueError(f'We calculate the max activations one batch at a time, so you must set the statistics batch size (currently {statistics_batch_size}) to at least as large as the number of samples you are collecting per feature (currently {samples_per_feature})')
-    
-    if int(samples_per_feature * 1.5) > statistics_batch_size:
-        print(f'Warning: We calculate the max activations one batch at a time. The statistics batch size is currently {statistics_batch_size}, and the samples you are collecting per feature is currently {samples_per_feature}. The statistics batch size should be much larger than the number of samples for optimal efficiency. Consider yourself warned bucko.')
 
 
 def generate_sae_activations(
@@ -63,6 +53,7 @@ def generate_sae_activations(
         sae_id=None,
         feature_indices=None,
         batches_in_stats_batch=1,
+        save_activations=True
     ):
 
     if not os.path.exists(activation_dir):
@@ -99,6 +90,7 @@ def generate_sae_activations(
         device=device, 
         feature_indices=feature_indices,
         output=activation_dir,
+        save_activations=save_activations
     )
 
 def sae_assessment(

@@ -33,7 +33,7 @@ params = [
 ]
 
 for p in params:
-    aesop = p['load_fn'](tokenizer, p['batch_size'], p['sequence_length'])
+    aesop = p['load_fn'](tokenizer, int(p['batch_size'] / 4), p['sequence_length'])
 
     activation_dir = f'data/{p["name"]}'
 
@@ -44,6 +44,7 @@ for p in params:
         transformer=model,
         batches_in_stats_batch=p['batches_in_stats_batch'],
         activation_dir=activation_dir,
-        feature_indices=None,
-        device=device
+        feature_indices=list(range(8)),
+        device=device,
+        save_activations=False
     )

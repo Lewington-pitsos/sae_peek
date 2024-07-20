@@ -4,7 +4,7 @@ import torch
 from tqdm import tqdm
 
 from app.constants import *
-from app.storage import ActivationDataset, data_from_tensor
+from app.storage import ActivationDataset, StatDataset, data_from_tensor
 
                             
 def new_topk_samples(start_idx, current_samples, samples, masked_activations, current_maxes, current_max_indices, topk):
@@ -22,6 +22,7 @@ def new_topk_samples(start_idx, current_samples, samples, masked_activations, cu
 
     all_maxes = torch.cat([current_maxes, topk_vals], dim=0)
     all_indices = torch.cat([current_max_indices, topk_indices], dim=0)
+    print(current_samples.shape, topk_samples_for_each_feature.shape)
     all_samples = torch.cat([current_samples, topk_samples_for_each_feature])
 
     new_maxes, new_indices_idx = torch.topk(all_maxes, topk, dim=0)
@@ -47,7 +48,15 @@ def collect_feature_stats(start_idx, n_ft, samples, stats, topk):
     stats['mean'].add_(batch_mean)
     stats['nonzero_proportion'].add_(batch_nonzero_prop)
 
-    stats['max_activations'], stats['max_activation_indices'] = new_topk_samples(start_idx, masked_activations, stats['max_activations'], stats['max_activation_indices'], topk)
+    stats['max_activations'], stats['max_activation_indices'], stats['top_samples'] = new_topk_samples(
+        start_idx=start_idx,
+        current_samples=stats['top_samples'],
+        samples=samples,
+        masked_activations=masked_activations, 
+        current_maxes=stats['max_activations'], 
+        current_max_indices=stats['max_activation_indices'], 
+        topk=topk
+    )
 
 def get_features(sae, transformer, input_ids, attention_mask):
     _, cache = transformer.run_with_cache(
@@ -85,7 +94,7 @@ def _init_stats(n_fts_to_analyse, device, feature_indices, samples_per_feature, 
         'feature_indices': torch.tensor(feature_indices),
 
         'max_activation_indices': torch.empty(samples_per_feature, n_fts_to_analyse).to(device),
-        'top_samples': torch.empty(samples_per_feature, sequence_length, n_fts_to_analyse + 2)
+        'top_samples': torch.empty(samples_per_feature, n_fts_to_analyse, sequence_length, n_fts_to_analyse + 2)
     }
 
 def save_sample_statistics(
@@ -96,20 +105,24 @@ def save_sample_statistics(
         output, 
         feature_indices, 
         batches_in_stats_batch=1,
-        samples_per_feature=15
+        samples_per_feature=15,
+        save_activations=True
     ):
     os.environ["TOKENIZERS_PARALLELISM"] = "false" # or else transformers will complain about tqdm starting a parallel process.
-    outer_batch_size = batch_size * batches_in_stats_batch
 
     validation_sample = next(iter(dataloader))
     assert 'input_ids' in validation_sample and 'attention_mask' in validation_sample, f'dataloader samples must have "attention_mask" and "input_ids" in order to be valid. First sample was: {validation_sample}'
     
-
     batch_size = validation_sample['input_ids'].shape[0]
     sequence_length = validation_sample['input_ids'].shape[1]
     n_fts_to_analyse = len(feature_indices)
+    outer_batch_size = batch_size * batches_in_stats_batch
 
-    ds = ActivationDataset(output)
+    if save_activations:
+        ds = ActivationDataset(output)
+    else:
+        ds = StatDataset(output)
+    
     stats = _init_stats(
         n_fts_to_analyse=n_fts_to_analyse, 
         device=device, 
