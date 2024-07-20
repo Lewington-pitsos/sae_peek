@@ -8,9 +8,9 @@ from app.storage import ActivationDataset, data_from_tensor
 
                             
 def new_topk_samples(start_idx, current_samples, samples, masked_activations, current_maxes, current_max_indices, topk):
-    # assert samples.shape[0] == masked_activations.shape[0], f'samples and activations must have the same number of samples. Got {samples.shape} samples and {masked_activations.shape} activations.'
-    # assert samples.shape[1] + 2 == masked_activations.shape[1], f'samples must have 2 more sequence length than activations. Got {samples.shape} samples and {masked_activations.shape} activations.'
-    # assert samples.shape[2] == masked_activations.shape[2], f'samples and activations must have the same number of features. Got {samples.shape} samples and {masked_activations.shape} activations.'
+    assert samples.shape[0] == masked_activations.shape[0], f'samples and activations must have the same number of samples. Got {samples.shape} samples and {masked_activations.shape} activations.'
+    assert samples.shape[1] == masked_activations.shape[1], f'samples must have the same length as activations. Got {samples.shape} samples and {masked_activations.shape} activations.'
+    assert samples.shape[2] == (masked_activations.shape[2] + 2), f'samples must have 2 more features than activations. Got {samples.shape} samples and {masked_activations.shape} activations.'
    
     max_acts = torch.max(masked_activations, dim=1).values
 

@@ -58,9 +58,67 @@ def test_new_topk():
     ])
 
 
+    incoming_samples =  torch.tensor([
+        [
+            [5, 2, 7, 7, 101, 1],
+            [2, 1, 4, 11, 102, 1],
+        ],
+        [
+            [5, 4, 1, 1, 391, 1],
+            [2, 1, 0, 12, 222, 1],
+        ],
+        [
+            [0,0,0,0, 0, 0],
+            [0,0,0,0, 0, 0],  
+        ],
+        [
+            [0,0,0,0, 0, 0],
+            [0,0,0,0, 0, 0],  
+        ],
+    ])
+    current_samples = torch.tensor([
+        [
+            [
+                [1, 1, 3, 3, 88, 1],
+                [1, 1, 2, 2, 88, 1],
+            ],
+            [
+                [1, 1, 1, 1, 88, 1],
+                [1, 1, 1, 1, 88, 1],
+            ],
+            [
+                [0,0,0,0, 0, 0],
+                [0,0,0,0, 0, 0],  
+            ],
+            [
+                [0,0,0,0, 0, 0],
+                [0,0,0,0, 0, 0],  
+            ],
+        ],
+        [
+            [
+                [1, 0, 2, 2, 88, 1],
+                [1, 1, 2, 2, 88, 1],
+            ],
+            [
+                [1, 1, 2, 2, 88, 1],
+                [1, 1, 1, 1, 88, 1],
+            ],
+            [
+                [0,0,0,0, 0, 0],
+                [0,0,0,0, 0, 0],  
+            ],
+            [
+                [0,0,0,0, 0, 0],
+                [0,0,0,0, 0, 0],  
+            ],
+        ]
+    ])
+
+
     topk = 2
 
-    new_maxes, new_indices = new_topk_samples(start_idx, None, None, acts, current_maxes, current_max_indices, topk)
+    new_maxes, new_indices = new_topk_samples(start_idx, current_samples, incoming_samples, acts, current_maxes, current_max_indices, topk)
 
     assert torch.all(new_maxes == torch.tensor([
         [87, 4, 12, 12],
@@ -99,9 +157,63 @@ def test_new_topk_case1():
         [1, 4, 10, 3, 7]
     ])
 
+    incoming_samples =  torch.tensor([
+        [
+            [5, 2, 7, 7, 0, 101, 1],
+            [2, 1, 4, 11, 0, 102, 1],
+        ],
+        [
+            [5, 4, 1, 1, 0, 391, 1],
+            [2, 1, 0, 12, 0, 222, 1],
+        ],
+        [
+            [0,0,0,0, 0, 0, 0],
+            [0,0,0,0, 0, 0, 0],  
+        ],
+    ])
+    current_samples = torch.tensor([
+        [
+            [
+                [1, 1, 3, 1, 3, 88, 1],
+                [1, 1, 2, 1, 2, 88, 1],
+            ],
+            [
+                [1, 1, 1, 1, 1, 88, 1],
+                [1, 1, 1, 1, 1, 88, 1],
+            ],
+            [
+                [0,0,0,0, 0, 0, 0],
+                [0,0,0,0, 0,0, 0],  
+            ],
+            [
+                [0,0,0,0, 0,0, 0],
+                [0,0,0,0, 0,0, 0],  
+            ],
+        ],
+        [
+            [
+                [1, 0, 2, 2, 0, 88, 1],
+                [1, 1, 2, 2, 0, 88, 1],
+            ],
+            [
+                [1, 1, 2, 2, 0, 88, 1],
+                [1, 1, 1, 1, 0, 88, 1],
+            ],
+            [
+                [0,0,0,0, 0, 0, 0],
+                [0,0,0,0, 0, 0, 0],  
+            ],
+            [
+                [0,0,0,0, 0, 0, 0],
+                [0,0,0,0, 0, 0, 0],  
+            ],
+        ]
+    ])
+
+
     topk = 2
 
-    new_maxes, new_indices = new_topk_samples(start_idx, None, None, acts, current_maxes, current_max_indices, topk)
+    new_maxes, new_indices = new_topk_samples(start_idx, current_samples, incoming_samples, acts, current_maxes, current_max_indices, topk)
 
     assert torch.all(new_maxes == torch.tensor([
         [5,  9,  9, 12,  8],
@@ -147,9 +259,85 @@ def test_new_topk_case2():
         [0, 4, 1],
     ])
 
+
+    incoming_samples =  torch.tensor([
+        [
+            [6, 7, 2, 121, 1],
+            [9, 1, 3, 121, 1],
+        ],
+        [
+            [2, 5, 8, 122, 1],
+            [4, 7, 6, 100, 1],
+        ],
+        [
+            [3, 8, 5, 80, 1],
+            [7, 9, 4, 77, 1],  
+        ],
+    ])
+
+    current_samples =  torch.tensor([
+        [
+            [
+                [6, 7, 2, 121, 1],
+                [9, 1, 3, 121, 1],
+            ],
+            [
+                [2, 5, 8, 122, 1],
+                [4, 7, 6, 100, 1],
+            ],
+            [
+                [3, 8, 5, 80, 1],
+                [7, 9, 4, 77, 1],  
+            ],
+        ],
+        [
+            [
+                [6, 7, 2, 121, 1],
+                [9, 1, 3, 121, 1],
+            ],
+            [
+                [2, 5, 8, 122, 1],
+                [4, 7, 6, 100, 1],
+            ],
+            [
+                [3, 8, 5, 80, 1],
+                [7, 9, 4, 77, 1],  
+            ],
+        ],
+                [
+            [
+                [6, 7, 2, 121, 1],
+                [9, 1, 3, 121, 1],
+            ],
+            [
+                [2, 5, 8, 122, 1],
+                [4, 7, 6, 100, 1],
+            ],
+            [
+                [3, 8, 5, 80, 1],
+                [7, 9, 4, 77, 1],  
+            ],
+        ],
+                [
+            [
+                [6, 7, 2, 121, 1],
+                [9, 1, 3, 121, 1],
+            ],
+            [
+                [2, 5, 8, 122, 1],
+                [4, 7, 6, 100, 1],
+            ],
+            [
+                [3, 8, 5, 80, 1],
+                [7, 9, 4, 77, 1],  
+            ],
+        ],
+    ])
+
+
     topk = 4
 
-    new_maxes, new_indices = new_topk_samples(start_idx, None, None, acts, current_maxes, current_max_indices, topk)
+    new_maxes, new_indices = new_topk_samples(start_idx, current_samples, incoming_samples, acts, current_maxes, current_max_indices, topk)
 
     assert torch.all(new_maxes == torch.tensor([[9, 9, 9],
         [7, 7, 8],
