@@ -1,5 +1,48 @@
-from app.collect import new_topk_samples, _init_stats, collect_feature_stats
+from app.collect import new_topk_samples, _reshape_samples
 import torch
+
+
+def test_reshape_samples():
+    samples = torch.tensor([
+        [
+            [0.1, 0.2, 0.3, 0.4],
+            [0.5, 0.6, 0.7, 0.8],
+            [0.9, 1.0, 1.1, 1.2]
+        ],
+        [
+            [1.3, 1.4, 1.5, 1.6],
+            [1.7, 1.8, 1.9, 2.0],
+            [2.1, 2.2, 2.3, 2.4]
+        ]
+    ])
+    n_features = 2
+    topk_indices = torch.tensor([[1, 0]])
+
+    expected_output = torch.tensor([
+        [
+            [[1.3, 1.5, 1.6], [0.2, 0.3, 0.4]],
+            [[1.7, 1.9, 2.0], [0.6, 0.7, 0.8]],
+            [[2.1, 2.3, 2.4], [1.0, 1.1, 1.2]],
+        ],
+    ])
+
+    output = _reshape_samples(samples.clone(), n_features, topk_indices)
+
+
+    assert torch.equal(output, expected_output), f"Output mismatch: expected {expected_output}, got {output}"
+
+    topk_indices = torch.tensor([[0, 1]])
+    output = _reshape_samples(samples.clone(), n_features, topk_indices)
+    expected_output = torch.tensor([
+        [
+            [[0.1, 0.3, 0.4], [1.4, 1.5, 1.6]],
+            [[0.5, 0.7, 0.8], [1.8, 1.9, 2.0]],
+            [[0.9, 1.1, 1.2], [2.2, 2.3, 2.4]],
+        ],
+    ])
+    assert torch.equal(output, expected_output), f"Output mismatch: expected {expected_output}, got {output}"
+
+
 
 def test_new_topk_case0():
 

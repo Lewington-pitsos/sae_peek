@@ -49,7 +49,7 @@ def new_topk_samples(
     new_maxes, new_indices_idx = torch.topk(all_maxes, topk, dim=0)
 
     new_indices = torch.gather(all_indices, dim=0, index=new_indices_idx)
-    new_samples = torch.gather(all_samples, dim=0, index=new_indices_idx.unsqueeze(1).unsqueeze(-1).expand([new_indices_idx.shape[0]] + list(all_samples.shape[1:])))
+    new_samples = torch.gather(all_samples, dim=0, index=new_indices_idx.unsqueeze(1).unsqueeze(-1).expand(new_indices_idx.shape[0], *list(all_samples.shape[1:])))
 
     return new_maxes, new_indices, new_samples
 
