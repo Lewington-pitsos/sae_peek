@@ -19,16 +19,16 @@ params = [
         'name': 'aesop-all',
         'load_fn': load_aesop,
         'sequence_length': 768,
-        'batch_size': 64,
-        'batches_in_stats_batch': 2
+        'batch_size': 32,
+        'batches_in_stats_batch': 4
     },
 
     {
         'name': 'pile10k-all',
         'load_fn': load_pile10k,
         'sequence_length': 1024,
-        'batch_size': 32,
-        'batches_in_stats_batch': 2
+        'batch_size': 16,
+        'batches_in_stats_batch': 4
     },
 ]
 
