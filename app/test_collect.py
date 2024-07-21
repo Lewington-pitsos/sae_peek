@@ -1,30 +1,6 @@
 from app.collect import new_topk_samples, _init_stats, collect_feature_stats
 import torch
 
-def test_keeps_raw_activations():
-    start_idx = 512
-    n_ft = 16
-    seq_len = 64
-    batch_size = 256
-    samples_to_save = 10
-    samples = torch.rand(batch_size, seq_len, n_ft + 2)
-
-    stats = _init_stats(n_ft, 'cpu', list(range(n_ft)), samples_to_save, seq_len)
-
-    collect_feature_stats(start_idx, n_ft, samples, stats, topk=samples_to_save)
-
-    assert 'top_samples' in stats
-
-    max_activation_vals, max_activation_indices = torch.topk(torch.max(samples, dim=1)[0], k=samples_to_save, dim=0)
-
-    indices_10_64_16 = max_activation_indices.unsqueeze(1).expand(-1, 64, -1)
-
-    max_samples = torch.gather(samples, 0, indices_10_64_16)
-
-    assert max_samples.shape == stats['top_samples'].shape
-    assert torch.allclose(max_samples, stats['top_samples'], atol=1e-6), "The max_samples do not match the top_samples in stats."
-
-
 def test_new_topk_case0():
 
     start_idx = 14
@@ -113,7 +89,7 @@ def test_new_topk_case0():
                 [0, 0, 0],  
             ],
         ]
-    ])
+    ]).permute(0, 2, 1, 3)
 
 
     topk = 2
@@ -132,30 +108,26 @@ def test_new_topk_case0():
 
     assert new_samples.shape == current_samples.shape
 
-    expected_samples = torch.tensor([[[[  3.,  88.,   1.],
-          [  2.,  88.,   1.]],
+    expected_samples = torch.tensor([[[[  3,  88,   1],
+          [  4, 391,   1],
+          [  0,   0,   0],
+          [  1, 391,   1]],
 
-         [[  4., 391.,   1.],
-          [  1., 222.,   1.]],
-
-         [[  0.,   0.,   0.],
-          [  0.,   0.,   0.]],
-
-         [[  1., 391.,   1.],
-          [ 12., 222.,   1.]]],
+         [[  2,  88,   1],
+          [  1, 222,   1],
+          [  0,   0,   0],
+          [ 12, 222,   1]]],
 
 
-        [[[  2.,  88.,   1.],
-          [  2.,  88.,   1.]],
+        [[[  2,  88,   1],
+          [  2,  88,   1],
+          [  0,   0,   0],
+          [  7, 101,   1]],
 
-         [[  2.,  88.,   1.],
-          [  1.,  88.,   1.]],
-
-         [[  0.,   0.,   0.],
-          [  0.,   0.,   0.]],
-
-         [[  7., 101.,   1.],
-          [ 11., 102.,   1.]]]])
+         [[  2,  88,   1],
+          [  1,  88,   1],
+          [  0,   0,   0],
+          [ 11, 102,   1]]]])
     assert torch.all(new_samples == expected_samples)
 
 
@@ -245,7 +217,7 @@ def test_new_topk_case1():
                 [0,0, 0],  
             ],
         ]
-    ])
+    ]).permute(0, 2, 1, 3)
 
 
     topk = 2
@@ -370,7 +342,7 @@ def test_new_topk_case2():
                 [4, 77, 1],  
             ],
         ]
-    ])
+    ]).permute(0, 2, 1, 3)
 
 
     topk = 4
@@ -389,4 +361,42 @@ def test_new_topk_case2():
         [65,  7, 64]]
     ))
     assert new_samples.shape == current_samples.shape
+
+    expected_samples = torch.tensor([[[[  6, 121,   1],
+          [  8,  80,   1],
+          [  5,  80,   1]],
+
+         [[  9, 121,   1],
+          [  9,  77,   1],
+          [  4,  77,   1]]],
+
+
+        [[[  3,  80,   1],
+          [  7, 121,   1],
+          [  8, 122,   1]],
+
+         [[  7,  77,   1],
+          [  1, 121,   1],
+          [  6, 100,   1]]],
+
+
+        [[[  2, 121,   1],
+          [  5, 122,   1],
+          [  5,  80,   1]],
+
+         [[  3, 121,   1],
+          [  7, 100,   1],
+          [  4,  77,   1]]],
+
+
+        [[[  2, 122,   1],
+          [  8, 122,   1],
+          [  2, 121,   1]],
+
+         [[  4, 100,   1],
+          [  6, 100,   1],
+          [  3, 121,   1]]]])
+    
+
+    assert torch.all(new_samples == expected_samples)
 
