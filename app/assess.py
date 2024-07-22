@@ -4,7 +4,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import openai
 import json
 from tqdm import tqdm
-from transformers import GPT2Tokenizer
 
 from app.glance import Corpus, active_sections_across_samples
 from app.constants import *
@@ -54,7 +53,7 @@ def describe_feature(sample_description, id):
         print(f"Error: {e} encountered for message, {content}")
         return None, id
 
-def assess(data_dir, samples_per_feature, relative_feature_indices=None):
+def assess(tokenizer, data_dir, samples_per_feature, relative_feature_indices=None):
     with open(CREDENTIALS_FILE) as f:
         credentials = json.load(f)
 
@@ -62,12 +61,14 @@ def assess(data_dir, samples_per_feature, relative_feature_indices=None):
 
     c = Corpus(data_dir)
 
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-
     if relative_feature_indices is None:
         features = c.all_features(samples_per_feature=samples_per_feature)
     else:
         features = c.by_relative_idx(relative_feature_indices, samples_per_feature=samples_per_feature)
+
+    for f in features:
+        for tokens, activations in f['samples']:
+            print(tokens.isnan().sum())
 
     assessment = {}
     for f in features:
@@ -103,10 +104,10 @@ def validate_assessment_args(*args, **kwargs):
         raise ValueError(f"could not locate credentials file {CREDENTIALS_FILE}")
 
 
-def llm_assessment(data_dir, output, samples_per_feature=None, relative_feature_indices=None):
+def llm_assessment(tokenizer, data_dir, output, samples_per_feature=None, relative_feature_indices=None):
     validate_assessment_args(**locals())
 
-    assessment = assess(data_dir, samples_per_feature, relative_feature_indices)
+    assessment = assess(tokenizer, data_dir, samples_per_feature, relative_feature_indices)
 
     with open(output, 'w') as f:
         json.dump(assessment, f, indent=4)

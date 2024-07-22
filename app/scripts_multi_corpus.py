@@ -87,4 +87,4 @@ if __name__ == '__main__':
     
     print('finished generating activations')
 
-    llm_assessment('data/2048-pile10k', output='cruft/pile10k-2048.json', samples_per_feature=10)
+    llm_assessment(tokenizer, 'data/2048-pile10k', output='cruft/pile10k-2048.json', samples_per_feature=10)

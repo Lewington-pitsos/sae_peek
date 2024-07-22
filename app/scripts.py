@@ -58,12 +58,15 @@ def load_raw_aesop_JSON():
         data = json.load(file)
     return data
 
-def load_aesop(tokenizer, batch_size, sequence_length):
+def load_aesop(tokenizer, batch_size, sequence_length, num_samples=None):
     if not os.path.exists(LOCAL_AESOP_FILENAME):
         print(f"{LOCAL_AESOP_FILENAME} does not exist. Downloading...")
         _download_file(AESOP_URL, LOCAL_AESOP_FILENAME)
 
     data = load_raw_aesop_JSON()
+
+    if num_samples is not None:
+        data = data[:num_samples]
     
     dataloader = _aesop_dataloader(data, tokenizer, batch_size, sequence_length)
     return dataloader

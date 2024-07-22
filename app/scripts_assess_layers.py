@@ -33,6 +33,7 @@ if __name__ == '__main__':
 
 
     sae_assessment(
+        tokenizer= model.tokenizer,
         dataloader=dl,
         batch_size=batch_size,
         sae_model='gpt2-small-res-jb',

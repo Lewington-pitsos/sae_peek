@@ -61,6 +61,7 @@ class Corpus():
                 tokens = feature_samples[i, :, 2]
                 activations = feature_samples[i, :, 0]
 
+
                 sample_tuples.append((tokens, activations))
 
             feature_data.append({

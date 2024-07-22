@@ -46,7 +46,8 @@ def new_topk_samples(
     all_indices = torch.cat([current_max_indices, topk_indices], dim=0)
     all_samples = torch.cat([current_samples, samples])
 
-    new_maxes, new_indices_idx = torch.topk(all_maxes, topk, dim=0)
+    overall_topk = min(all_maxes.shape[0], topk)
+    new_maxes, new_indices_idx = torch.topk(all_maxes, overall_topk, dim=0)
 
     new_indices = torch.gather(all_indices, dim=0, index=new_indices_idx)
     new_samples = torch.gather(all_samples, dim=0, index=new_indices_idx.unsqueeze(1).unsqueeze(-1).expand(new_indices_idx.shape[0], *list(all_samples.shape[1:])))
@@ -109,12 +110,12 @@ def _init_stats(n_fts_to_analyse, device, feature_indices, samples_per_feature, 
     return {
         'mean': torch.zeros(n_fts_to_analyse).to(device),
         'nonzero_proportion': torch.zeros(n_fts_to_analyse).to(device),
-        'max_activations': torch.zeros(samples_per_feature, n_fts_to_analyse).to(device),
+        'max_activations': torch.tensor([]).to(device),
         
         'feature_indices': torch.tensor(feature_indices),
 
-        'max_activation_indices': torch.empty(samples_per_feature, n_fts_to_analyse).to(device),
-        'top_samples': torch.empty(samples_per_feature, sequence_length, n_fts_to_analyse, 3).to(device)
+        'max_activation_indices': torch.tensor([]).to(device),
+        'top_samples': torch.tensor([]).to(device)
     }
 
 def save_sample_statistics(

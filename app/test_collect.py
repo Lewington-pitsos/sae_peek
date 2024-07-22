@@ -1,7 +1,6 @@
 from app.collect import new_topk_samples, _reshape_samples
 import torch
 
-
 def test_reshape_samples():
     samples = torch.tensor([
         [
@@ -42,6 +41,66 @@ def test_reshape_samples():
     ])
     assert torch.equal(output, expected_output), f"Output mismatch: expected {expected_output}, got {output}"
 
+
+def test_new_topk_no_current_maxes():
+    start_idx = 1290
+    acts =  torch.tensor([
+        [
+            [0,0,0,0],
+            [0, 0, 0, 0]
+        ],
+        [
+            [0,0,0,0],
+            [0, 0, 0, 0]
+        ],
+    ])
+
+    current_maxes = torch.tensor([])
+    current_max_indices = torch.tensor([])
+    incoming_samples =  torch.tensor([
+        [
+            [0,0,0,0, 101, 1],
+            [0,0,0,0, 102, 1],
+        ],
+        [
+            [0,0,0,0, 391, 1],
+            [0,0,0,0, 222, 1],
+        ],
+    ])
+    current_samples = torch.tensor([])
+
+    topk = 2
+
+    new_maxes, _, new_samples = new_topk_samples(start_idx, current_samples, incoming_samples, acts, current_maxes, current_max_indices, topk)
+
+    assert torch.all(new_maxes == torch.tensor([
+        [0,0,0,0],
+        [0, 0, 0, 0]
+    ]))
+
+    print(new_samples)
+    assert torch.all(new_samples == torch.tensor([[[[  0, 101,   1],
+          [  0, 101,   1],
+          [  0, 101,   1],
+          [  0, 101,   1]],
+
+         [[  0, 102,   1],
+          [  0, 102,   1],
+          [  0, 102,   1],
+          [  0, 102,   1]]],
+
+
+        [[[  0, 391,   1],
+          [  0, 391,   1],
+          [  0, 391,   1],
+          [  0, 391,   1]],
+
+         [[  0, 222,   1],
+          [  0, 222,   1],
+          [  0, 222,   1],
+          [  0, 222,   1]]]]))
+
+    
 
 
 def test_new_topk_case0():

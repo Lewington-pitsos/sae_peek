@@ -94,6 +94,7 @@ def generate_sae_activations(
     )
 
 def sae_assessment(
+        tokenizer,
         activation_dir, 
         output,
         samples_per_feature=15,
@@ -110,7 +111,7 @@ def sae_assessment(
         samples_per_feature=samples_per_feature,
         **activation_kwargs)
 
-    llm_assessment(activation_dir, output, samples_per_feature)
+    llm_assessment(tokenizer, activation_dir, output, samples_per_feature)
 
     metrics_of_interest = [
         'feature_coherence',
