@@ -10,6 +10,7 @@ from app.peek import generate_sae_activations
 from app.scripts import load_aesop, load_pile10k
 from sae_lens import HookedSAETransformer
 import torch.nn.functional as F
+import random
 
 def stretch_activations(activations, attention_mask):
     n_samples, _, n_features = activations.shape
@@ -30,8 +31,6 @@ def stretch_activations(activations, attention_mask):
     return stretched_activations
 
 
-
-
 AESOP_BATCH_SEQ_LEN = 768
 AESOP_MAX_SEQ_LEN = 514
 
@@ -42,45 +41,40 @@ AESOP_MAX_SEQ_LEN = 514
 # SAE_MODEL = 'gpt2-small-res-jb'
 # SAE_ID = "blocks.10.hook_resid_pre"
 
-
 BASE_NAME = 'gemma-it'
 TRANSFORMER_NAME = 'google/gemma-2b-it'
 SAE_MODEL = 'gemma-2b-it-res-jb'
 SAE_ID = "blocks.12.hook_resid_post"
 
-
-TOPK = 4
-FEATURE_INDICES = list(range(8))
-TOPK_DATA_DIR = f'data/{BASE_NAME}-top32'
+TOPK = 32
+FEATURE_INDICES = None
+TOPK_DATA_DIR = f'data/{BASE_NAME}-top{TOPK}'
 ASSESSMENT_FILE = f'cruft/pile10k-{BASE_NAME}-mean.json'
 
 
-
-TOPK_BATCH_SIZE = 32
+TOPK_BATCH_SIZE = 8
 
 
 PARAMS_AESOP={
-        'name': f'data/aesop-{BASE_NAME}',
-        'load_fn': load_aesop,
-        'sequence_length': AESOP_BATCH_SEQ_LEN,
-        'batch_size': 32,
-        'num_samples': None,
-        'indices': FEATURE_INDICES,
-        'batches_in_stats_batch': 4,
-        'save_activations': False,
-
-    }
+    'name': f'data/aesop-{BASE_NAME}',
+    'load_fn': load_aesop,
+    'num_samples': None,
+    'sequence_length': AESOP_BATCH_SEQ_LEN,
+    'batch_size': 8,
+    'indices': FEATURE_INDICES,
+    'batches_in_stats_batch': 16,
+    'save_activations': False,
+}
 PARAMS_PILE10K ={
-        'name': f'data/pile10k-{BASE_NAME}',
-        'load_fn': load_pile10k,
-        'num_samples': 64,
-        'sequence_length': 1024,
-        'batch_size': 16,
-        'indices': FEATURE_INDICES,
-        'batches_in_stats_batch': 4,
-        'save_activations': False,
-    }
-
+    'name': f'data/pile10k-{BASE_NAME}',
+    'load_fn': load_pile10k,
+    'num_samples': None,
+    'sequence_length': 1024,
+    'batch_size': 8,
+    'indices': FEATURE_INDICES,
+    'batches_in_stats_batch': 16,
+    'save_activations': False,
+}
 
 # --------------------------- Optional Cleanup -----------------------------
 
@@ -110,6 +104,11 @@ if torch.cuda.is_available():
 else:
     device = 'cpu'
 
+with open('.credentials.json') as f:
+    creds = json.load(f)
+    
+os.environ['HF_TOKEN'] = creds['HF_TOKEN']
+
 if not os.path.exists(PARAMS_AESOP['name']) or not os.path.exists(PARAMS_PILE10K['name']) or not os.path.exists(TOPK_DATA_DIR):
     model = HookedSAETransformer.from_pretrained(TRANSFORMER_NAME, device=device)
 tokenizer = AutoTokenizer.from_pretrained(TRANSFORMER_NAME)
@@ -119,7 +118,7 @@ tokenizer.pad_token = tokenizer.eos_token
 
 for param in [PARAMS_AESOP, PARAMS_PILE10K]:
     if not os.path.exists(param['name'] + '/stats.pt'):
-        data_loader = param['load_fn'](tokenizer, int(param['batch_size'] / 8), param['sequence_length'], num_samples=param['num_samples'])
+        data_loader = param['load_fn'](tokenizer, param['batch_size'], param['sequence_length'], num_samples=param['num_samples'])
 
         generate_sae_activations(
             dataloader=data_loader,
@@ -174,8 +173,8 @@ attention_mask, _, acts = aesop_topk_corpus.load_all_data()
 # --------------------------- Normalize and plot activations for topk features ---------------------
 
 acts = acts * attention_mask
-acts = acts[:, :AESOP_MAX_SEQ_LEN, :]
-attention_mask = attention_mask[:, :AESOP_MAX_SEQ_LEN, :]
+acts = acts[:, AESOP_MAX_SEQ_LEN:, :]
+attention_mask = attention_mask[:, AESOP_MAX_SEQ_LEN:, :]
 normalized_acts = acts / (torch.amax(acts, dim=(0, 1)) + 1e-8)
 
 plt.imshow(torch.max(normalized_acts, dim=0)[0].T, cmap='gray', aspect='auto', interpolation="nearest")
@@ -218,7 +217,7 @@ print(topk_indices)
 assert len(top_fts) == topk_indices.shape[0]
 toplot = torch.mean(s, dim=0).T
 
-plt.figure(figsize=(14, 8))
+plt.figure(figsize=(32, 8))
 
 plt.imshow(toplot, cmap='gray', aspect='auto', interpolation="nearest")
 plt.yticks(ticks=range(len(top_fts)), labels=top_fts)
@@ -238,7 +237,7 @@ for i, feature in enumerate(top_indices):
     print('---------', top_fts[i], '---------')
     print(explain[i])
     
-    for tokens, token_acts in feature['samples']:
+    for tokens, token_acts in random.sample(feature['samples'], 5):
         try:
             glance_at(tokens, token_acts, tokenizer)
         except:

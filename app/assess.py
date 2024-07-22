@@ -66,10 +66,6 @@ def assess(tokenizer, data_dir, samples_per_feature, relative_feature_indices=No
     else:
         features = c.by_relative_idx(relative_feature_indices, samples_per_feature=samples_per_feature)
 
-    for f in features:
-        for tokens, activations in f['samples']:
-            print(tokens.isnan().sum())
-
     assessment = {}
     for f in features:
         machine_readable_representation, sections = feature_representation(f, tokenizer)
