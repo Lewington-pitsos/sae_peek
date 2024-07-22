@@ -37,10 +37,18 @@ AESOP_MAX_SEQ_LEN = 514
 
 # ----------------- Define Parameters ---------------------
 
-BASE_NAME = 'test'
-TRANSFORMER_NAME = 'gpt2'
-SAE_MODEL = 'gpt2-small-res-jb'
-SAE_ID = "blocks.10.hook_resid_pre"
+# BASE_NAME = 'test'
+# TRANSFORMER_NAME = 'gpt2'
+# SAE_MODEL = 'gpt2-small-res-jb'
+# SAE_ID = "blocks.10.hook_resid_pre"
+
+
+BASE_NAME = 'gemma-it'
+TRANSFORMER_NAME = 'google/gemma-2b-it'
+SAE_MODEL = 'gemma-2b-it-res-jb'
+SAE_ID = "blocks.12.hook_resid_post"
+
+
 TOPK = 4
 FEATURE_INDICES = list(range(8))
 TOPK_DATA_DIR = f'data/{BASE_NAME}-top32'
@@ -86,7 +94,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "cleanup":
         os.system(f'rm -r {TOPK_DATA_DIR}')
     if os.path.exists(ASSESSMENT_FILE):
         os.system(f'rm {ASSESSMENT_FILE}')
-        
+
     sys.exit(0)
 
 
