@@ -97,7 +97,12 @@ if len(sys.argv) > 1 and sys.argv[1] == "cleanup":
 
     sys.exit(0)
 
-
+if not os.path.exists('notes'):
+    os.mkdir('notes')
+if not os.path.exists('cruft'):
+    os.mkdir('cruft')
+if not os.path.exists('data'):
+    os.mkdir('data')
 
 # --------------------------- Load Model -----------------------------
 if torch.cuda.is_available():
