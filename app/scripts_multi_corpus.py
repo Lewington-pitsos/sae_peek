@@ -55,7 +55,7 @@ if __name__ == '__main__':
         device = 'cuda'
     else:
         device = 'cpu'
-
+    
     batch_size = 4
     sequence_length = 256
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')

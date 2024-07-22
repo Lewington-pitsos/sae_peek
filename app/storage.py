@@ -22,11 +22,21 @@ class _StatSaver():
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
 
+    def stats_only(self):
+        for f in os.listdir(self.data_dir):
+            if f != 'stats.pt':
+                return False
+
+        return True
+    
     def add(self, activations):
         raise NotImplementedError
 
     def finalize(self, stats):
         torch.save(stats, os.path.join(self.data_dir, 'stats.pt'))    
+
+    def load_stats(self, device='cpu'):
+        return torch.load(os.path.join(self.data_dir, 'stats.pt'), map_location=device)
 
 class StatDataset(_StatSaver):
     def add(self, activations):
@@ -92,5 +102,4 @@ class ActivationDataset(_StatSaver):
         super().finalize(stats)
         self.save_activations()
     
-    def load_stats(self, device='cpu'):
-        return torch.load(os.path.join(self.data_dir, 'stats.pt'), map_location=device)
+
